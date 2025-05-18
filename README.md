@@ -1,0 +1,1 @@
+See https://docs.astral.sh/uv/guides/projects/ for any further information.
