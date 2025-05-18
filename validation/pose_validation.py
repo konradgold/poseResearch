@@ -2,11 +2,12 @@ import os
 from typing import List
 import numpy as np
 import cv2
-import torch
+from sklearn.metrics.pairwise import cosine_similarity
 from scipy.optimize import linear_sum_assignment
 
+confidence_threshold = 0.4
+
 class PoseValidation:
-    confidence_threshold = 0.4
     def __init__(self, ground_truth, poses, output_mode: str):
         self.ground_truth = ground_truth
         self.poses = poses
@@ -19,21 +20,25 @@ class PoseValidation:
                 # Create the file and its parent directories if needed
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-    def pose_keypoint_similarity(self, keypoints, poses) -> float:
-        m_error = np.array((len(keypoints), len(poses)))
+    @staticmethod
+    def pose_keypoint_similarity(keypoints, poses):
+        m_error = np.zeros((len(keypoints), poses.shape[0]))
         for i,keypoints2d in enumerate(keypoints):
             keypoints_xy = keypoints2d.xy[0].cpu().numpy()
             confidence = keypoints2d.conf[0].cpu().numpy()
-            valid_mask = confidence > self.confidence_threshold
+            valid_mask = confidence > confidence_threshold
 
             if valid_mask.sum() < 4:
                 continue  # Not enough points to solve PnP robustly
 
             image_points = keypoints_xy[valid_mask]
+            image_points = np.array(image_points, dtype=np.float32).reshape(-1, 2)
 
             for j, pose in enumerate(poses):
-                keypoints_3d = pose.keypoints  # shape: (num_joints, 3)
+                keypoints_3d = pose  # shape: (num_joints, 3)
                 object_points = keypoints_3d[valid_mask]
+                object_points = np.array(object_points, dtype=np.float32).reshape(-1, 3)
+                assert object_points.shape[0] == image_points.shape[0]
 
                 image_size = (640, 480)  # Width x Height
                 focal_length = image_size[0]
@@ -50,8 +55,7 @@ class PoseValidation:
                     object_points,
                     image_points,
                     camera_matrix,
-                    dist_coeffs,
-                    flags=cv2.SOLVEPNP_ITERATIVE
+                    dist_coeffs
                 )
 
                 if not success:
@@ -66,15 +70,23 @@ class PoseValidation:
                 )
 
                 projected_points = projected_points.reshape(-1, 2)
-                errors = np.linalg.norm(projected_points - image_points, axis=1)
-                m_error[i, j] = np.mean(errors)
-        row_ind, col_ind = linear_sum_assignment(m_error)
-        return m_error[row_ind, col_ind].sum()
+                
 
+                # Compute cosine similarity for each pair
+                cos_sim = np.nan_to_num(cosine_similarity(projected_points, image_points))  # shape: (N,)
+                #error = np.linalg.norm(projected_points - image_points, axis=1)
+
+                m_error[i, j] -= np.mean(cos_sim.diagonal())
+        row_ind, col_ind = linear_sum_assignment(m_error)
+        return -m_error[row_ind, col_ind].mean(), -m_error
+    
+    def preprocess_poses(self, keypoints, pose):
+        return keypoints, pose
     
     def average_similarity(self):
         similarities: List[float] = []
         for keypoints, pose in zip(self.ground_truth, self.poses):
-            similarities.append(self.pose_keypoint_similarity(keypoints, pose))
+            keypoints2d, pose3d = self.preprocess_poses(keypoints, pose)
+            similarities.append(self.pose_keypoint_similarity(keypoints2d, pose3d)[0])
         return np.mean(similarities)
         
