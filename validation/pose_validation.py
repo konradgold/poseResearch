@@ -1,9 +1,6 @@
 import os
 from typing import List
-from unicodedata import numeric
-
 from numpy import mean as np_mean
-from traitlets import Float
 
 
 class PoseValidation:
