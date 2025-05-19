@@ -1,82 +1,57 @@
-from enum import Enum
+# Copyright (C) 2022-2023 Naver Corporation. All rights reserved.
+# Licensed under CC BY-NC-SA 4.0 (non-commercial use only).
 
+from sklearn.metrics import average_precision_score
+from functools import reduce
 import numpy as np
 import torch
-import torch.distributed as dist
 
-IGNORE_INDEX = -100
-IMAGE_TOKEN_INDEX = -200
-DEFAULT_IMAGE_TOKEN = "<image>"
-DEFAULT_IMAGE_PATCH_TOKEN = "<im_patch>"
-DEFAULT_IM_START_TOKEN = "<im_start>"
-DEFAULT_IM_END_TOKEN = "<im_end>"
+import argparse
 
-# HMR_SHORT_QUESTION_LIST = [
-#     "Can you give the SMPL pose of this person?",
-#     "Please output this person's SMPL pose.",
-#     "Describe what this perosn is doing using SMPL pose.",
-#     "What's the SMPL pose of this person?",
-#     "Use SMPL to describe this person's pose."
-# ]
+def valid_reduce(x, mask, reduction):
+    """ Multiply x by mask and reduce the right way. """
 
-HMR_SHORT_QUESTION_LIST = [
-    "I have a description of a person's pose, can you give the SMPL pose of this person?",
-    "Give you a word descrption of a human, please output the SMPL pose.",
-    "Describe what this perosn is doing using SMPL pose.",
-    "What's the SMPL pose of this person?",
-    "Use SMPL pose to describe this person's behavior."
-]
+    assert reduction in ['mean', 'sum'], "Unknown reduction"
+    if len(x.shape) == 1 and x.shape[0] == 1: # Just a scalar
+        return x.sum() if reduction == 'sum' else x.mean()
 
-# TEXT_SHORT_QUESTION_LIST = [
-#     "Can you give the SMPL pose?",
-#     "Please output this person's SMPL pose.",
-#     "Give the SMPL pose.",
-#     "What's the SMPL pose of it?",
-#     "Use SMPL to describe the pose."
-# ]
-TEXT_SHORT_QUESTION_LIST = [
-    "I have a word description of a person's pose, can you give the SMPL pose of this person? {sent}",
-    "There is a person: {sent} Please output this person's SMPL pose.",
-    "{sent} Give the SMPL pose.",
-    "What's the SMPL pose of this person? {sent}",
-    "Use SMPL pose to describe this person's behavior. {sent}",
-    "There is a person doing this: {sent} Can you use SMPL pose to describe the pose?",
-    "A person is described as: {sent} Use the SMPL pose to reflect this.",
-    "Human pose is described as words: {sent} The SMPL pose is?",
-    "Human pose can be described as words: {sent} And it can also be described as SMPL pose format, can you output this?",
-]
+    # Unsqueeze mask to be of the right shape 
+    for _ in range(0, len(x.shape) - len(mask.shape)): # Prepare valid broadcasting
+        mask = mask.unsqueeze(-1)
+
+    if reduction == 'mean':
+        # We can't simply do .mean() as masked scalars would decrease the average,
+        # so we sum and divide by the number of non-masked scalars.
+
+        # Number of scalars to divide by.
+        tdim = mask.float().mean([d for d in range(2, len(x.shape))]).sum(-1)
+
+        # Avoid division by 0; if tdim was 0, it will be masked anyway so we don't care.
+        tdim = (tdim * (tdim != 0).float() + (tdim == 0).float())
+        return (mask.float() * x).mean([d for d in range(2, len(x.shape))]).sum(-1) / tdim
+
+    return (mask.float() * x).sum([d for d in range(1, len(x.shape))])
+
+def count_dim(a):
+    return reduce((lambda x, y: x * y), [a.shape[d] for d in range(1, len(a.shape))])
+    
+def subsamble_random_offset(bs, period, tdim, var_list):
+    assert bs > 0, "Nothing to train vertices on"
+    offset = np.random.randint(0, period)
+    subsample = lambda x: x[:bs, offset::period, ...][:, :tdim, ...]
+    return [subsample(x) for x in var_list]
+
+def compute_map(actions, y_gen_logits):
+    y_scores = torch.cat(y_gen_logits)
+    y_scores = torch.sigmoid(y_scores).cpu().numpy()
+    y = actions.cpu().numpy()
+    list_average_precision = []
+    for k in range(y.shape[1]):
+        val = average_precision_score(y[:, k], y_scores[:, k])
+        val = np.nan_to_num(val)
+        list_average_precision.append(val)
+    # NOTE: we leave it as a score between 0 and 1 to be coherent with the way accuracy is handled
+    mAP = np.asarray(list_average_precision).mean()
+    return mAP
 
 
-SHORT_QUESTION_LIST = [
-    DEFAULT_IMAGE_TOKEN + "\n" + "Can you predict the SMPL pose of the person in this image?",
-    DEFAULT_IMAGE_TOKEN + "\n" + "There is a person in the middle of the image, please output this person's SMPL pose.",
-    DEFAULT_IMAGE_TOKEN
-    + "\n"
-    + "What is the human pose in this image? Please respond with SMPL pose.",
-    DEFAULT_IMAGE_TOKEN
-    + "\n"
-    + "What is the person doing in this image? Please output SMPL pose.",
-    DEFAULT_IMAGE_TOKEN + "\n" + "There is a person in the middle of the image, use SMPL to describe the pose.",
-]
-
-LONG_QUESTION_LIST = [
-    DEFAULT_IMAGE_TOKEN + "\n" + "{sent} Please respond with SMPL pose.",
-    DEFAULT_IMAGE_TOKEN + "\n" + "{sent} Please output SMPL pose.",
-]
-
-EXPLANATORY_QUESTION_LIST = [
-    "Please output SMPL pose and explain the pose.",
-    "Please output SMPL pose and explain the reason.",
-    "Please output SMPL pose and give some explanation.",
-]
-
-ANSWER_LIST = [
-    "It is [SEG].",
-    "Sure, [SEG].",
-    "Sure, it is [SEG].",
-    "Sure, the SMPL pose is [SEG].",
-    "[SEG].",
-    "The SMPL pose is [SEG].",
-    "The SMPL pose of the person is [SEG].",
-    "The SMPL format of this person's pose is [SEG].",
-]

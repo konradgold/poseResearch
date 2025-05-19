@@ -1,77 +1,145 @@
-<!-- PROJECT LOGO -->
+# PoseGPT: Quantization-based 3D Human Motion Generation and Forecasting [ECCV 2022]
 
-<p align="center">
-  <h1 align="center">ChatPose: Chatting about 3D Human Pose
- </h1>
-<!--  <p align="center">
-    <a href="https://ps.is.tuebingen.mpg.de/person/yxiu"><strong>Yao Feng</strong></a>
-    ·
-    <a href="https://ps.is.tuebingen.mpg.de/person/jyang"><strong>Jinlong Yang</strong></a>
-    ·
-    <a href="https://ps.is.tuebingen.mpg.de/person/black"><strong>Michael J. Black</strong></a>
-    .
-    <a href="https://people.inf.ethz.ch/pomarc/"><strong>Marc Pollefeys</strong></a>
-    .
-    <a href="https://ps.is.mpg.de/person/tbolkart"><strong>Timo Bolkart</strong></a>
-  </p>
-  <h2 align="center">SIGGRAPH Asia 2022 conference </h2>
-  -->
-  <div align="center">
-    <img src="Doc/images/teaser.png" alt="teaser" width="100%">
-  </div>
-</p> 
+[![report](https://img.shields.io/badge/ArXiv-Paper-red)](./)
 
-<!-- We introduce PoseGPT, a multi-model LLM designed for chatting about human pose that produces 3D human poses (SMPL pose parameters) upon user request. 
-PoseGPT features a specialized SMPL projection layer trained to convert language embeddings into 3D human pose parameters. Our demonstration includes conversations both without (left) and with (right) an image input.  
-Upon detection of a pose token, the token is used to estimate the SMPL pose parameters and subsequently generate the corresponding 3D body mesh. -->
-This is the implementation of ChatPose (formerly known as PoseGPT). More details please check our [Project](https://yfeng95.github.io/ChatPose) page.  
+![Drag Racing](teaser.png)
 
-<!-- PROJECT LOGO -->
-ChatPose is a Multi-modal LLM to understand and reason about 3D Human poses (as SMPL pose format). ChatPose enables users to ask questions regarding human poses and infer these poses from both images and text descriptions.
+> [**PoseGPT: Quantization-based 3D Human Motion Generation and Forecasting**](./),            
+> [Thomas Lucas*](https://europe.naverlabs.com/people_user/thomas-lucas/),
+> [Fabien Baradel*](https://fabienbaradel.github.io/),
+> [Philippe Weinzaepfel](https://europe.naverlabs.com/people_user/philippe-weinzaepfel/),
+> [Grégory Rogez](https://europe.naverlabs.com/people_user/gregory-rogez/)       
+> *European Conference on Computer Vision (ECCV), 2022*
 
-## Getting Started
-Clone the repo:
-  ```bash
-  git clone https://github.com/yfeng95/PoseGPT
-  cd PoseGPT
-  ```  
-### Requirements
-```bash
-bash install_conda.sh
-``` 
-### Download data 
-```
-bash fetch_data.sh
-```
-This step will download SMPL-X model for visualization. 
+Pytorch training and evaluation code for PoseGPT on BABEL.
 
-## Inference
-* chatting: 
+## Install
+Our code is running using python3.7 and requires the following packages:
+
+- pytorch-1.7.1+cu110
+- pytorch3d-0.3.0
+- torchvision
+- opencv
+- PIL
+- numpy
+- smplx
+- einops
+- roma
+
+We do not provide support for installation.
+
+## Pre-process the data
+You should have AMASS files and BABEL annotations in two seperate repository following this structure:
 ```
-python main_chat.py 
+<babel_dir>
+    |--- train.json
+    |--- val.json
+    |--- test.json
+
+<amass_dir>
+    |--- smplx
+            |--- ACCAD # and then it follows the standard AMASS data structure
+            |--- ...
+            |--- SSM
+    |--- smplh
+            |--- ACCAD
+            |--- ...
+            |--- SSM
 ```
-* chatting with image input:
+
+Then you can preprocess the data by running the following command; and it will create files from the root directories <mocap_dir>
 ```
-python main_chat.py --image_file dataset/baber.png
+babel_dir='[link_to_babel_dir]'
+amass_dir='[link_to_amass_dir]'
+mocap_dir='[link_to_preprocessed_data_dir]'
+list_split=( 'train' 'test' 'val' )
+list_type=( 'smplx' 'smplh' )
+for split in "${list_split[@]}"
+do
+    for type in "${list_type[@]}"
+    do
+        echo ${type}
+        echo ${split}
+        python dataset/preprocessing/babel.py "prepare_annots_trimmed(type='${type}',split='${split}',mocap_dir='${mocap_dir}',babel_dir='${babel_dir}',amass_dir='${amass_dir}')"
+    done
+done
 ```
-<!-- * test:
+
+Once the preprocessing is done you should have a data structure such that:
 ```
-bash scripts/main_inference.py
-``` -->
-<!-- ## Training 
-TBD -->
+<mocap_dir>
+    |--- <type> # smplh or smplx
+            |--- babel_trimmed
+                            |--- <split>_60 # for train, val and test
+                                    |--- seqLen64_fps30_overlap0_minSeqLen16
+                                                                    |--- pose.pkl
+                                                                    |--- action.pt
+```
+Finally, create simlinks named './babel', './amass', './preprocessed_data' at the root of the git folder (alternatively you can modify the default path arguments in babel.py)
+
+
+## Train a transformer based classifier using smpl parameters as input:
+
+For computing the FID we first need to train a classifier on BABEL:
+```
+python3 classify.py --name classifier_ -iter 1000 --classif_method TR -lr 4e-5 --use_bm 0
+```
+
+## Train the auto_encoder
+Different variants exists for the auto-encoder, using the following command you can train the one you want
+
+- Train auto_encoder in debug setting (e.g to debug with a different VQVAE architecture)
+```
+python3 auto_encode.py  --name auto_encoder_debug --n_codebook 2 --n_e 512 --e_dim 256 --loss l2 --model CausalVQVAE --dropout 0 --freq_vert 2 --learning_rate 5e-5 --alpha_vert 100. --ab1 0.95 --tprop_vert 0.1 --prefetch_factor 4  --alpha_codebook 1. --hid_dim 384 --alpha_codebook 0.25 --train_batch_size 64 --debug 1 --dummy_data 1
+```
+- Train an offline (i.e all timesteps generated simultaneously), transformer based VQ-VAE
+```
+python3 auto_encode.py  --name auto_encoder --n_codebook 2 --n_e 512 --e_dim 256 --loss l2 --model CausalVQVAE --dropout 0 --freq_vert 2 --learning_rate 5e-5 --alpha_vert 100. --ab1 0.95 --tprop_vert 0.1 --prefetch_factor 4  --alpha_codebook 1. --hid_dim 384 --alpha_codebook 0.25 --train_batch_size 64
+```
+- Train a transformer based VQ-VAE, with causality in the encoder but not in the decoder (can condition on past observations):
+```
+python3 auto_encode.py  --name auto_encoder --n_codebook 2 --n_e 512 --e_dim 256 --loss l2 --model CausalVQVAE --dropout 0 --freq_vert 2 --learning_rate 5e-5 --alpha_vert 100. --ab1 0.95 --tprop_vert 0.1 --prefetch_factor 4  --alpha_codebook 1. --hid_dim 384 --alpha_codebook 0.25 --train_batch_size 64
+```
+- Train a transformer based VQ-VAE autoencoder, with causality in the encoder and in the decoder (can predict future given past on the fly):
+```
+python3 auto_encode.py  --name auto_encoder --n_codebook 2 --n_e 512 --e_dim 256 --loss l2 --model CausalVQVAE --dropout 0 --freq_vert 2 --learning_rate 5e-5 --alpha_vert 100. --ab1 0.95 --tprop_vert 0.1 --prefetch_factor 4  --alpha_codebook 1. --hid_dim 384 --alpha_codebook 0.25 --train_batch_size 64
+```
+
+## Train the generator
+Once the auto-encoder is trained, it is available to train the generator.
+- Train a generator (using a previously trained autoencoder)
+```
+python3 train_gpt.py  --name generator --n_codebook 2 --n_e 512 --e_dim 256  --vq_model CausalVQVAE --hid_dim 384 --dropout 0  --vq_ckpt ./logs/auto_encoder_debug/checkpoints/best_val.pt --model poseGPT --n_visu_to_save 2 --class_conditional 1 --gpt_blocksize 512 --gpt_nlayer 8 --gpt_nhead 4 --gpt_embd_pdrop 0.2 --gpt_resid_pdrop 0.2 --gpt_attn_pdrop 0.2 --seq_len 64 --gen_eos 0 --eval_fid 0 --eos_force 1 --seqlen_conditional 1 --embed_every_step 1 --concat_emb 1
+```
+- Train a generator in debug mode (using a previously trained autoencoder)
+```
+python3 train_gpt.py  --name generator --n_codebook 2 --n_e 512 --e_dim 256  --vq_model CausalVQVAE --hid_dim 384 --dropout 0  --vq_ckpt ./logs/auto_encoder_debug/checkpoints/best_val.pt --model poseGPT --n_visu_to_save 2 --class_conditional 1 --gpt_blocksize 512 --gpt_nlayer 8 --gpt_nhead 4 --gpt_embd_pdrop 0.2 --gpt_resid_pdrop 0.2 --gpt_attn_pdrop 0.2 --seq_len 64 --gen_eos 0 --eval_fid 0 --eos_force 1 --seqlen_conditional 1 --embed_every_step 1 --concat_emb 1 --dummy_data 1 --debug 1
+```
+
+## Demo [Coming soon]
+You will soon be able to download our pretrained checkpoint here, if you do not want to train the model by yourself.
+```
+wget <todo>
+```
+
+<!--And finally launch the demo-->
+<!--```-->
+<!--python3 demo.py --ckpt <todo> # TODO add a demo.py that allows sampling and evaluation from a pretrained checkpoint-->
+<!--```-->
 
 ## Citation
-```bibtex
-@InProceedings{feng2024chatpose,
-    author = {Feng, Yao and Lin, Jing and Dwivedi, Sai Kumar and Sun, Yu and Patel, Priyanka and Black, Michael J.},
-    title = {{ChatPose}: Chatting about 3D Human Pose},
-    booktitle = {CVPR},
-    year = {2024}
-}  
-```
-## Acknowledgments 
-This repository is built extensively on top of [LLaVA](https://github.com/haotian-liu/LLaVA) and [LISA](https://github.com/dvlab-research/LISA). 
-Some other great resources we benefit from:   
-[TokenHMR](https://github.com/saidwivedi/TokenHMR), [PoseScript](https://github.com/naver/posescript) and [4D-Humans](https://github.com/shubham-goel/4D-Humans) for 3D human pose. 
 
+If you find our work useful please cite our paper:
+
+```
+@inproceedings{posegpt,
+  title={PoseGPT: Quantization-based 3D Human Motion Generation and Forecasting},
+  author={Lucas*, Thomas and Baradel*, Fabien and Weinzaepfel, Philippe and Rogez, Gr\'egory},
+  booktitle={European Conference on Computer Vision ({ECCV})},
+  year={2022}
+}
+```
+
+## License
+
+PoseGPT is distributed under the CC BY-NC-SA 4.0 License. See [LICENSE](LICENSE) for more information.
