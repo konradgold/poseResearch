@@ -5,7 +5,7 @@ import math
 import torch
 import torch.nn as nn
 from einops import rearrange
-from models.blocks.attention import CausalSelfAttention
+from PoseGPT.models.blocks.attention import CausalSelfAttention
 
 class GPTConfig:
     """ base GPT config, params common to all GPT versions """

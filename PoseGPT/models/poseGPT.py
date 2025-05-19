@@ -12,13 +12,13 @@ from argparse import ArgumentParser
 #from utils.ae_utils import freeze
 from torch.nn import functional as F
 from einops import rearrange
-from utils.body_model import get_trans
-from utils.variable_length import valid_concat_rot_trans, repeat_last_valid
-from utils.ae_utils import red
+from PoseGPT.utils.body_model import get_trans
+from PoseGPT.utils.variable_length import valid_concat_rot_trans, repeat_last_valid
+from PoseGPT.utils.ae_utils import red
 import math
 #from dataset.preprocessing.babel import get_glove_embeddings
-from models.blocks.mingpt import Block, GPTConfig
-from models.blocks.sampling import sample_from_logits as _sample_from_logits
+from PoseGPT.models.blocks.mingpt import Block, GPTConfig
+from PoseGPT.models.blocks.sampling import sample_from_logits as _sample_from_logits
 from functools import partial
 
 def freeze(model):

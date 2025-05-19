@@ -163,6 +163,15 @@ wheels = [
 ]
 
 [[package]]
+name = "einops"
+version = "0.8.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/81/df4fbe24dff8ba3934af99044188e20a98ed441ad17a274539b74e82e126/einops-0.8.1.tar.gz", hash = "sha256:de5d960a7a761225532e0f1959e5315ebeafc0cd43394732f103ca44b9837e84", size = 54805 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/62/9773de14fe6c45c23649e98b83231fffd7b9892b6cf863251dc2afa73643/einops-0.8.1-py3-none-any.whl", hash = "sha256:919387eb55330f5757c6bea9165c5ff5cfe63a642682ea788a6d472576d81737", size = 64359 },
+]
+
+[[package]]
 name = "executing"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -748,17 +757,23 @@ name = "poseresearch"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "einops" },
     { name = "ipykernel" },
     { name = "opencv-python" },
+    { name = "roma" },
     { name = "scikit-learn" },
+    { name = "threed" },
     { name = "ultralytics" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "einops", specifier = ">=0.8.1" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "opencv-python", specifier = ">=4.11.0.86" },
+    { name = "roma", specifier = ">=1.5.2.1" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
+    { name = "threed", specifier = ">=0.0.2" },
     { name = "ultralytics", specifier = ">=8.3.139" },
 ]
 
@@ -937,6 +952,15 @@ wheels = [
 ]
 
 [[package]]
+name = "roma"
+version = "1.5.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/e9/3000f0112edbc5b327dc7400b41dd2733c1e6cccf967f0b2dee8022ef95a/roma-1.5.2.1.tar.gz", hash = "sha256:d3a51da1293953acbbb991ab6d47b826268a0112ca6835375b34e68cb88292a7", size = 31214 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f7/43/39b15abcad1d4b52945b64603e4d8fec46ca3cbb1915d7955ecae15cc710/roma-1.5.2.1-py3-none-any.whl", hash = "sha256:895786bdfb5927bf6bd5e50be562782676e1e6d36e90e55afea1cffa72a42200", size = 24731 },
+]
+
+[[package]]
 name = "scikit-learn"
 version = "1.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1039,6 +1063,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b7/4d/08c89e34946fce2aec4fbb45c9016efd5f4d7f24af8e5d93296e935631d8/threadpoolctl-3.6.0.tar.gz", hash = "sha256:8ab8b4aa3491d812b623328249fab5302a68d2d71745c8a4c719a2fcaba9f44e", size = 21274 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/32/d5/f9a850d79b0851d1d4ef6456097579a9005b31fea68726a4ae5f2d82ddd9/threadpoolctl-3.6.0-py3-none-any.whl", hash = "sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb", size = 18638 },
+]
+
+[[package]]
+name = "threed"
+version = "0.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/46/6cde3a33a51e38e59c5c63eb38ede0e19b21ef2219d265c8c8b728fe62ad/threed-0.0.2.tar.gz", hash = "sha256:177e026f982e263b896e4ddeeea678c4490addb37a2c44b04f7ae133e33e6e32", size = 863 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a1/24/b03e004a46a2cfe797276df62d12f01182f8e3ecf76d7a51cbdf9f91d52e/threed-0.0.2-py3-none-any.whl", hash = "sha256:3cdd919531f9861057df294d405a5632df16df50d2d35eb9a4cc4930088b616e", size = 1800 },
 ]
 
 [[package]]

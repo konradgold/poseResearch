@@ -5,8 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "einops>=0.8.1",
     "ipykernel>=6.29.5",
     "opencv-python>=4.11.0.86",
+    "roma>=1.5.2.1",
     "scikit-learn>=1.6.1",
+    "threed>=0.0.2",
     "ultralytics>=8.3.139",
 ]

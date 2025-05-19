@@ -3,7 +3,7 @@
 
 import torch
 import numpy as np
-from utils.constants import FOCAL_LENGTH, IMG_SIZE, IMG_RES_SPIN, FOCAL_LENGTH_SPIN
+from PoseGPT.utils.constants import FOCAL_LENGTH, IMG_SIZE, IMG_RES_SPIN, FOCAL_LENGTH_SPIN
 import roma
 import math
 

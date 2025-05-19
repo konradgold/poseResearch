@@ -8,7 +8,7 @@ from PIL import Image, ImageFont, ImageDraw
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from scipy.optimize import linear_sum_assignment
-from threed.geometry import angle_between, rotation_matrix
+from PoseGPT.threed.geometry import angle_between, rotation_matrix
 import roma
 
 """ The function preprocess_skeleton is adapted from https://github.com/lshiwjx/2s-AGCN"""

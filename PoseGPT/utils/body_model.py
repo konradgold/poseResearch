@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import roma
 
-from threed.skeleton import get_smplx_pose, get_smplh_pose, get_smpl_pose
+from PoseGPT.threed.skeleton import get_smplx_pose, get_smplh_pose, get_smpl_pose
 
 def pose_to_vertices(y, pose_type, alpha, bm, parallel=False,
         manual_seq_len=None):
