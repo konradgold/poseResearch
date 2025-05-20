@@ -37,7 +37,7 @@ class Masked_conv(nn.Module):
         if mask is not None:
             # mask dependant down-sampling. A bit hacky but what ever?
             maxval = x.abs().max()
-            x = x - (~mask.unsqueeze(1)).int() * 10 * maxval
+            x = x - ((~mask.unsqueeze(1)).int() * 10 * maxval)
             x = self.pool(x)
             x = x + (x < - 5 * maxval).int() * 10 * maxval
             if mask.shape[1] % 2:

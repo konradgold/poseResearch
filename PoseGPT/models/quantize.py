@@ -21,8 +21,9 @@ class EmaCodebookMeter:
     """Compute an estimate of centroid usage, using an EMA to track proportions """
 
     def __init__(self, codebook_size, ema_alpha=0.05):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.codebook_size = codebook_size
-        self.bins = (torch.ones((self.codebook_size), requires_grad=False) / self.codebook_size).detach().cuda()
+        self.bins = (torch.ones((self.codebook_size), requires_grad=False) / self.codebook_size).detach().to(self.device)
         self.ema_alpha = ema_alpha
         self.iters = 0
 
@@ -35,7 +36,7 @@ class EmaCodebookMeter:
         return count / norm
 
     def load(self, bins):
-        self.bins = torch.tensor(bins, requires_grad=False).detach().cuda()
+        self.bins = torch.tensor(bins, requires_grad=False).detach().to(self.device)
 
     def update(self, val, weights=None, n=1):
         """ Count usage of each value in the codebook """
