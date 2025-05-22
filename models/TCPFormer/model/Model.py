@@ -1,9 +1,12 @@
 from collections import OrderedDict
+from tkinter import Y
 
 import torch
 from torch import nn
 from timm.models.layers import DropPath
 import os,sys
+
+from ultralytics import YOLO
 sys.path.append(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from model.modules.attention import Attention
@@ -429,6 +432,19 @@ class MemoryInducedTransformer(nn.Module):
         x = self.head(x)
 
         return x
+    
+
+class MemoryInducedTransformerPipe(MemoryInducedTransformer):
+    def __init__(self, *args, plane_pose_model, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.plane_pose_model = YOLO(plane_pose_model)
+
+    def forward(self, x, return_rep=False):
+        x = self.plane_pose_model(x)
+        kp = [xi.keypoints.xy[0] for xi in x]
+        kp = torch.stack(kp).unsqueeze(0)
+        return super().forward(kp, return_rep)
+
 
 
 def _test():
@@ -436,10 +452,10 @@ def _test():
     #torch.cuda.set_device(0)
     import warnings
     warnings.filterwarnings('ignore')
-    b, c, t, j = 1, 3, 243, 17
+    b, c, t, j = 1, 2, 21, 17
     random_x = torch.randn((b, t, j, c)).to(device)
 
-    model = MemoryInducedTransformer(n_layers=16, dim_in=3, dim_feat=128, mlp_ratio=4, hierarchical=False,
+    model = MemoryInducedTransformer(n_layers=16, dim_in=2, dim_feat=128, mlp_ratio=4, hierarchical=False,
                            use_tcn=False, graph_only=False, n_frames=t).to(device)
     model.eval()
 
