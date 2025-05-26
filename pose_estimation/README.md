@@ -1,6 +1,8 @@
 - Zuerst aktivieren vom environment in pose_estimation mit source pose_estimation/.venv/bin/activate
+- In Ordner pose_estimation gehen (ab nun wird alles da gemacht)
 - uv sync ausführen
 - Probieren obs geht :D
+
 Wenn nicht, dann:
 - uv pip install wheel muss manuell ausgeführt werden, um chumpy zu installieren
 - Danach kann uv sync ausgeführt werden, um chumpy 0.70 zu bauen
