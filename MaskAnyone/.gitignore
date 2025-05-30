@@ -1,0 +1,14 @@
+.env
+data/*
+!data/.gitkeep
+!data/backend
+data/backend/*
+!data/backend/presets
+data/backend/presets/*
+!data/backend/presets/.gitkeep
+!data/backend/results
+data/backend/results/*
+!data/backend/results/.gitkeep
+!data/backend/videos
+data/backend/videos/*
+!data/backend/videos/.gitkeep
