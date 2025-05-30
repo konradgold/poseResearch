@@ -3,14 +3,13 @@ name = "poseresearch"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.8.20"
 dependencies = [
-    "einops>=0.8.1",
+    "easydict>=1.13",
+    "imageio>=2.35.1",
     "ipdb>=0.13.13",
-    "ipykernel>=6.29.5",
     "opencv-python>=4.11.0.86",
-    "roma>=1.5.2.1",
-    "scikit-learn>=1.6.1",
-    "threed>=0.0.2",
-    "ultralytics>=8.3.139",
+    "smplx>=0.1.28",
+    "torch>=2.5.1",
+    "ultralytics>=8.3.146",
 ]
