@@ -1,0 +1,7 @@
+aligned_sequences: 475
+ground_truth: /Users/konradgoldenbaum/Downloads/cam-016
+mean_similarity: 0.24443
+media: /Users/konradgoldenbaum/Downloads/interactive4_t3-cam16.mp4
+media_type: video
+model: yolo11n-pose.pt
+sample_rate: 1

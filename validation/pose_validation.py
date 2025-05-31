@@ -7,6 +7,26 @@ from scipy.optimize import linear_sum_assignment
 
 confidence_threshold = 0.4
 
+openpose_to_coco = [
+    0,   # Nose
+    15,  # Left Eye
+    16,  # Right Eye
+    17,  # Left Ear
+    18,  # Right Ear
+    5,   # Left Shoulder
+    2,   # Right Shoulder
+    6,   # Left Elbow
+    3,   # Right Elbow
+    7,   # Left Wrist
+    4,   # Right Wrist
+    12,  # Left Hip
+    9,   # Right Hip
+    13,  # Left Knee
+    10,  # Right Knee
+    14,  # Left Ankle
+    11   # Right Ankle
+]
+
 class PoseValidation:
     def __init__(self, ground_truth, poses, output_mode: str):
         self.ground_truth = ground_truth
@@ -22,6 +42,10 @@ class PoseValidation:
 
     @staticmethod
     def pose_keypoint_similarity(keypoints, poses):
+        poses = poses.squeeze()
+        if len(poses.shape) == 2:
+            poses = np.expand_dims(poses, axis=0)
+
         m_error = np.zeros((len(keypoints), poses.shape[0]))
         for i,keypoints2d in enumerate(keypoints):
             keypoints_xy = keypoints2d.xy[0].cpu().numpy()
@@ -34,49 +58,55 @@ class PoseValidation:
             image_points = keypoints_xy[valid_mask]
             image_points = np.array(image_points, dtype=np.float32).reshape(-1, 2)
 
+            
             for j, pose in enumerate(poses):
-                keypoints_3d = pose  # shape: (num_joints, 3)
-                object_points = keypoints_3d[valid_mask]
-                object_points = np.array(object_points, dtype=np.float32).reshape(-1, 3)
-                assert object_points.shape[0] == image_points.shape[0]
+                try:
 
-                image_size = (640, 480)  # Width x Height
-                focal_length = image_size[0]
+                    keypoints_3d = pose[openpose_to_coco]  # shape: (num_joints, 3)
+                    object_points = keypoints_3d[valid_mask]
+                    object_points = np.array(object_points, dtype=np.float32).reshape(-1, 3)
+                    assert object_points.shape[0] == image_points.shape[0]
 
-                camera_matrix = np.array([
-                    [focal_length, 0, image_size[0] / 2],
-                    [0, focal_length, image_size[1] / 2],
-                    [0, 0, 1]
-                ], dtype=np.float64)
+                    image_size = (640, 480)  # Width x Height
+                    focal_length = image_size[0]
 
-                dist_coeffs = np.zeros((4, 1))
+                    camera_matrix = np.array([
+                        [focal_length, 0, image_size[0] / 2],
+                        [0, focal_length, image_size[1] / 2],
+                        [0, 0, 1]
+                    ], dtype=np.float64)
 
-                success, rvec, tvec, inliers = cv2.solvePnPRansac(
-                    object_points,
-                    image_points,
-                    camera_matrix,
-                    dist_coeffs
-                )
+                    dist_coeffs = np.zeros((4, 1))
 
-                if not success:
-                    continue  # Skip this pair if PnP fails
+                    success, rvec, tvec, inliers = cv2.solvePnPRansac(
+                        object_points,
+                        image_points,
+                        camera_matrix,
+                        dist_coeffs
+                    )
 
-                projected_points, _ = cv2.projectPoints(
-                    object_points,
-                    rvec,
-                    tvec,
-                    camera_matrix,
-                    dist_coeffs
-                )
+                    if not success:
+                        continue  # Skip this pair if PnP fails
 
-                projected_points = projected_points.reshape(-1, 2)
-                
+                    projected_points, _ = cv2.projectPoints(
+                        object_points,
+                        rvec,
+                        tvec,
+                        camera_matrix,
+                        dist_coeffs
+                    )
 
-                # Compute cosine similarity for each pair
-                cos_sim = np.nan_to_num(cosine_similarity(projected_points, image_points))  # shape: (N,)
-                #error = np.linalg.norm(projected_points - image_points, axis=1)
+                    projected_points = projected_points.reshape(-1, 2)
+                    
 
-                m_error[i, j] -= np.mean(cos_sim.diagonal())
+                    # Compute cosine similarity for each pair
+                    cos_sim = np.nan_to_num(cosine_similarity(projected_points, image_points))  # shape: (N,)
+                    #error = np.linalg.norm(projected_points - image_points, axis=1)
+
+                    m_error[i, j] -= np.mean(cos_sim.diagonal())
+                except Exception as e:
+                    print(f"An error occurred {e}")
+                    m_error[i, j] = 0.
         row_ind, col_ind = linear_sum_assignment(m_error)
         return -m_error[row_ind, col_ind].mean(), -m_error
     
