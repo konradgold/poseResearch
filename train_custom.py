@@ -1,42 +1,27 @@
 import os
+import random
 import numpy as np
 import argparse
 import errno
-import math
-import pickle
 import tensorboardX
 from tqdm import tqdm
 from time import time
 import copy
-import random
 import prettytable
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from lib.utils.tools import *
-from lib.utils.learning import *
-from lib.utils.utils_data import flip_data
-from lib.data.dataset_motion_2d import PoseTrackDataset2D, InstaVDataset2D
-from lib.data.dataset_motion_3d import MotionDataset3D
-from lib.data.augmentation import Augmenter2D
-from lib.data.datareader_h36m import DataReaderH36M  
-from lib.model.loss import *
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/pretrain.yaml", help="Path to the config file.")
-    parser.add_argument('-c', '--checkpoint', default='checkpoint', type=str, metavar='PATH', help='checkpoint directory')
-    parser.add_argument('-p', '--pretrained', default='checkpoint', type=str, metavar='PATH', help='pretrained checkpoint directory')
-    parser.add_argument('-r', '--resume', default='', type=str, metavar='FILENAME', help='checkpoint to resume (file name)')
-    parser.add_argument('-e', '--evaluate', default='', type=str, metavar='FILENAME', help='checkpoint to evaluate (file name)')
-    parser.add_argument('-ms', '--selection', default='latest_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
-    parser.add_argument('-sd', '--seed', default=0, type=int, help='random seed')
-    opts = parser.parse_args()
-    return opts
+from MotionBERT.lib.utils.tools import *
+from MotionBERT.lib.utils.learning import *
+from MotionBERT.lib.utils.utils_data import flip_data
+from MotionBERT.lib.data.dataset_motion_2d import PoseTrackDataset2D, InstaVDataset2D
+from MotionBERT.lib.data.dataset_motion_3d import MotionDataset2D
+from MotionBERT.lib.data.augmentation import Augmenter2D
+from MotionBERT.lib.data.datareader_h36m import DataReaderH36M  
+from MotionBERT.lib.model.loss import *
 
 def set_random_seed(seed):
     random.seed(seed)
@@ -52,6 +37,16 @@ def save_checkpoint(chk_path, epoch, lr, optimizer, model_pos, min_loss):
         'model_pos': model_pos.state_dict(),
         'min_loss' : min_loss
     }, chk_path)
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="configs/motionbert/train/overfit.yml", help="Path to the config file.")
+    parser.add_argument('-c', '--checkpoint', default='MotionBERT/checkpoint/pose3d/overfitTT', type=str, metavar='PATH', help='checkpoint directory')
+    parser.add_argument('-p', '--pretrained', default='MotionBERT/checkpoint/pose3d/FT_MB_lite_MB_ft_h36m_global_lite', type=str, metavar='PATH', help='pretrained checkpoint directory')
+    parser.add_argument('-ms', '--selection', default='best_epoch.bin', type=str, metavar='FILENAME', help='checkpoint to finetune (file name)')
+    parser.add_argument('-sd', '--seed', default=0, type=int, help='random seed')
+    opts = parser.parse_args()
+    return opts
     
 def evaluate(args, model_pos, test_loader, datareader):
     print('INFO: Testing')
@@ -152,7 +147,7 @@ def evaluate(args, model_pos, test_loader, datareader):
     print('----------')
     return e1, e2, results_all
         
-def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt):
+def train_epoch(args, model_pos, train_loader, losses, optimizer, has_gt):
     model_pos.train()
     for idx, (batch_input, batch_gt) in tqdm(enumerate(train_loader)):    
         batch_size = len(batch_input)        
@@ -162,46 +157,18 @@ def train_epoch(args, model_pos, train_loader, losses, optimizer, has_3d, has_gt
         with torch.no_grad():
             if args.no_conf:
                 batch_input = batch_input[:, :, :, :2]
-            if not has_3d:
-                conf = copy.deepcopy(batch_input[:,:,:,2:])    # For 2D data, weight/confidence is at the last channel
-            if args.rootrel:
-                batch_gt = batch_gt - batch_gt[:,:,0:1,:]
-            else:
-                batch_gt[:,:,:,2] = batch_gt[:,:,:,2] - batch_gt[:,0:1,0:1,2] # Place the depth of first frame root to 0.
+            conf = copy.deepcopy(batch_input[:,:,:,2:])    # For 2D data, weight/confidence is at the last channel
+            batch_gt = batch_gt - batch_gt[:,:,0:1,:]
             if args.mask or args.noise:
                 batch_input = args.aug.augment2D(batch_input, noise=(args.noise and has_gt), mask=args.mask)
         # Predict 3D poses
         predicted_3d_pos = model_pos(batch_input)    # (N, T, 17, 3)
         
         optimizer.zero_grad()
-        if has_3d:
-            loss_3d_pos = loss_mpjpe(predicted_3d_pos, batch_gt)
-            loss_3d_scale = n_mpjpe(predicted_3d_pos, batch_gt)
-            loss_3d_velocity = loss_velocity(predicted_3d_pos, batch_gt)
-            loss_lv = loss_limb_var(predicted_3d_pos)
-            loss_lg = loss_limb_gt(predicted_3d_pos, batch_gt)
-            loss_a = loss_angle(predicted_3d_pos, batch_gt)
-            loss_av = loss_angle_velocity(predicted_3d_pos, batch_gt)
-            loss_total = loss_3d_pos + \
-                         args.lambda_scale       * loss_3d_scale + \
-                         args.lambda_3d_velocity * loss_3d_velocity + \
-                         args.lambda_lv          * loss_lv + \
-                         args.lambda_lg          * loss_lg + \
-                         args.lambda_a           * loss_a  + \
-                         args.lambda_av          * loss_av
-            losses['3d_pos'].update(loss_3d_pos.item(), batch_size)
-            losses['3d_scale'].update(loss_3d_scale.item(), batch_size)
-            losses['3d_velocity'].update(loss_3d_velocity.item(), batch_size)
-            losses['lv'].update(loss_lv.item(), batch_size)
-            losses['lg'].update(loss_lg.item(), batch_size)
-            losses['angle'].update(loss_a.item(), batch_size)
-            losses['angle_velocity'].update(loss_av.item(), batch_size)
-            losses['total'].update(loss_total.item(), batch_size)
-        else:
-            loss_2d_proj = loss_2d_weighted(predicted_3d_pos, batch_gt, conf)
-            loss_total = loss_2d_proj
-            losses['2d_proj'].update(loss_2d_proj.item(), batch_size)
-            losses['total'].update(loss_total.item(), batch_size)
+        loss_2d_proj = loss_2d_weighted(predicted_3d_pos, batch_gt, conf)
+        loss_total = loss_2d_proj
+        losses['2d_proj'].update(loss_2d_proj.item(), batch_size)
+        losses['total'].update(loss_total.item(), batch_size)
         loss_total.backward()
         optimizer.step()
 
@@ -234,18 +201,24 @@ def train_with_config(args, opts):
           'persistent_workers': True
     }
 
-    train_dataset = MotionDataset3D(args, args.subset_list, 'train')
-    test_dataset = MotionDataset3D(args, args.subset_list, 'test')
-    train_loader_3d = DataLoader(train_dataset, **trainloader_params)
+    subset_list = args.subset_list
+
+    if args.expand_subset_list:
+        expanded_list = []
+        for subset in subset_list:
+            base_path = os.path.join(args.data_root, subset)
+            for root, dirs, files in os.walk(base_path):
+                # Only add paths that contain files, not just subdirectories
+                if files:
+                    rel_path = os.path.relpath(root, args.data_root)
+                    expanded_list.append(rel_path)
+        subset_list = expanded_list
+
+    train_dataset = MotionDataset2D(args, subset_list, '')
+    test_dataset = MotionDataset2D(args, subset_list, '')
+    train_loader_2d = DataLoader(train_dataset, **trainloader_params)
     test_loader = DataLoader(test_dataset, **testloader_params)
-    
-    if args.train_2d:
-        posetrack = PoseTrackDataset2D()
-        posetrack_loader_2d = DataLoader(posetrack, **trainloader_params)
-        instav = InstaVDataset2D()
-        instav_loader_2d = DataLoader(instav, **trainloader_params)
-        
-    datareader = DataReaderH36M(n_frames=args.clip_len, sample_stride=args.sample_stride, data_stride_train=args.data_stride, data_stride_test=args.clip_len, dt_root = 'data/motion3d', dt_file=args.dt_file)
+
     min_loss = 100000
     model_backbone = load_backbone(args)
     model_params = 0
@@ -257,51 +230,26 @@ def train_with_config(args, opts):
         model_backbone = nn.DataParallel(model_backbone)
         model_backbone = model_backbone.cuda()
 
-    if args.finetune:
-        if opts.resume or opts.evaluate:
-            chk_filename = opts.evaluate if opts.evaluate else opts.resume
-            print('Loading checkpoint', chk_filename)
-            checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-            model_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
-            model_pos = model_backbone
-        else:
-            chk_filename = os.path.join(opts.pretrained, opts.selection)
-            print('Loading checkpoint', chk_filename)
-            checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-            model_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
-            model_pos = model_backbone            
-    else:
-        chk_filename = os.path.join(opts.checkpoint, "latest_epoch.bin")
-        if os.path.exists(chk_filename):
-            opts.resume = chk_filename
-        if opts.resume or opts.evaluate:
-            chk_filename = opts.evaluate if opts.evaluate else opts.resume
-            print('Loading checkpoint', chk_filename)
-            checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
-            model_backbone.load_state_dict(checkpoint['model_pos'], strict=True)
-        model_pos = model_backbone
-        
-    if args.partial_train:
-        model_pos = partial_train_layers(model_pos, args.partial_train)
+    chk_filename = os.path.join(opts.pretrained, opts.selection)
+    print('Loading checkpoint', chk_filename)
+    checkpoint = torch.load(chk_filename, map_location=lambda storage, loc: storage)
 
-    if not opts.evaluate:
+    from collections import OrderedDict
+    new_state_dict = OrderedDict()
+    for k, v in checkpoint['model_pos'].items():  # or checkpoint if no 'state_dict' key
+        new_key = k.replace('module.', '')  # remove 'module.' prefix
+        new_state_dict[new_key] = v
+
+    model_backbone.load_state_dict(new_state_dict, strict=True)
+    model_pos = model_backbone            
+
+    if True: #not opts.evaluate:
         lr = args.learning_rate
         optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model_pos.parameters()), lr=lr, weight_decay=args.weight_decay)
         lr_decay = args.lr_decay
         st = 0
-        if args.train_2d:
-            print('INFO: Training on {}(3D)+{}(2D) batches'.format(len(train_loader_3d), len(instav_loader_2d) + len(posetrack_loader_2d)))
-        else:
-            print('INFO: Training on {}(3D) batches'.format(len(train_loader_3d)))
-        if opts.resume:
-            st = checkpoint['epoch']
-            if 'optimizer' in checkpoint and checkpoint['optimizer'] is not None:
-                optimizer.load_state_dict(checkpoint['optimizer'])
-            else:
-                print('WARNING: this checkpoint does not contain an optimizer state. The optimizer will be reinitialized.')            
-            lr = checkpoint['lr']
-            if 'min_loss' in checkpoint and checkpoint['min_loss'] is not None:
-                min_loss = checkpoint['min_loss']
+        
+        print('INFO: Training on {} batches'.format(len(train_loader_2d)))
                 
         args.mask = (args.mask_ratio > 0 and args.mask_T_ratio > 0)
         if args.mask or args.noise:
@@ -321,22 +269,19 @@ def train_with_config(args, opts):
             losses['3d_velocity'] = AverageMeter()
             losses['angle'] = AverageMeter()
             losses['angle_velocity'] = AverageMeter()
-            N = 0
+
+            train_epoch(args, model_pos, train_loader_2d, losses, optimizer, has_gt=True)
             
-            # Curriculum Learning
-            if args.train_2d and (epoch >= args.pretrain_3d_curriculum):
-                train_epoch(args, model_pos, posetrack_loader_2d, losses, optimizer, has_3d=False, has_gt=True)
-                train_epoch(args, model_pos, instav_loader_2d, losses, optimizer, has_3d=False, has_gt=False)
-            train_epoch(args, model_pos, train_loader_3d, losses, optimizer, has_3d=True, has_gt=True) 
             elapsed = (time() - start_time) / 60
 
-            if args.no_eval:
-                print('[%d] time %.2f lr %f 3d_train %f' % (
-                    epoch + 1,
-                    elapsed,
-                    lr,
-                   losses['3d_pos'].avg))
-            else:
+            #if args.no_eval:
+            e1 = np.inf
+            print('[%d] time %.2f lr %f 3d_train %f' % (
+                epoch + 1,
+                elapsed,
+                lr,
+                losses['3d_pos'].avg))
+            if False:
                 e1, e2, results_all = evaluate(args, model_pos, test_loader, datareader)
                 print('[%d] time %.2f lr %f 3d_train %f e1 %f e2 %f' % (
                     epoch + 1,
@@ -373,7 +318,7 @@ def train_with_config(args, opts):
                 min_loss = e1
                 save_checkpoint(chk_path_best, epoch, lr, optimizer, model_pos, min_loss)
                 
-    if opts.evaluate:
+    if False: #opts.evaluate:
         e1, e2, results_all = evaluate(args, model_pos, test_loader, datareader)
 
 if __name__ == "__main__":

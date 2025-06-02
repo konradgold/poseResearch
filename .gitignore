@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+.venv/lib/
 lib64/
 parts/
 sdist/
@@ -175,3 +175,5 @@ cython_debug/
 
 
 validation/pose_validation*
+
+events.out*

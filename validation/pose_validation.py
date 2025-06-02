@@ -61,7 +61,6 @@ class PoseValidation:
             
             for j, pose in enumerate(poses):
                 try:
-
                     keypoints_3d = pose[openpose_to_coco]  # shape: (num_joints, 3)
                     object_points = keypoints_3d[valid_mask]
                     object_points = np.array(object_points, dtype=np.float32).reshape(-1, 3)
