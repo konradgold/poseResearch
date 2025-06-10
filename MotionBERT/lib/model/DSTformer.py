@@ -236,6 +236,7 @@ class Block(nn.Module):
         self.att_fuse = att_fuse
         if self.att_fuse:
             self.ts_attn = nn.Linear(dim*2, dim*2)
+            
     def forward(self, x, seqlen=1):
         if self.st_mode=='stage_st':
             x = x + self.drop_path(self.attn_s(self.norm1_s(x), seqlen))
