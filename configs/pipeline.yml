@@ -1,0 +1,28 @@
+backbone: DSTformer
+maxlen: 243
+dim_feat: 256
+mlp_ratio: 4
+depth: 5
+dim_rep: 512
+num_heads: 8
+att_fuse: True
+
+epochs: 20
+checkpoint_frequency: 10
+batch_size: 3
+dropout: 0.0
+learning_rate: 0.0005
+weight_decay: 0.01
+lr_decay: 0.99
+device: mps
+llm_backbone: google/gemma-2-2b-it
+resume_pth: /Volumes/KG1TB/Developement/poseResearch/MotionAgent/ckpt/vqvae.pth
+resume_gpt: /Volumes/KG1TB/Developement/poseResearch/MotionAgent/ckpt/motionllm.pth
+custom_motion_llm_args: False
+num_epochs: 1
+save_path: ./checkpoints/any/
+
+num_joints: 17
+
+checkpoint_path: /Volumes/KG1TB/Developement/poseResearch/MotionBERT/checkpoint/pose3d/FT_MB_lite_MB_ft_h36m_global_lite/best_epoch.bin
+yolo_model_path: /Volumes/KG1TB/Developement/poseResearch/models/yolo11n-pose.pt

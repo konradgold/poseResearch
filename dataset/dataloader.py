@@ -1,5 +1,6 @@
 from enum import StrEnum
 import cv2
+import numpy as np
 import torch
 
 class CameraAngle(StrEnum):
@@ -60,8 +61,12 @@ class VideoHandler(torch.utils.data.Dataset):
             ret, frame = self.video.read()
             if not ret:
                 raise RuntimeError(f"Failed to read frame {frame_idx} from video.")
+            height, width = frame.shape[:2]
+            size = min(height, width)
+            if height != width:
+                frame = frame[:size, :size]  # Crop to square
             frames.append(frame)
-        return frames
+        return np.transpose(np.stack(frames, axis=0), (0, 3, 1, 2))
 
     
 

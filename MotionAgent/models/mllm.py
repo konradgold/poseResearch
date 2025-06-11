@@ -2,9 +2,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import LoraConfig, get_peft_model
 import torch.nn as nn
 import torch
-from models.training_utils import *
+from MotionAgent.models.training_utils import *
 import numpy as np
-import models.vqvae as vqvae
+import MotionAgent.models.vqvae as vqvae
 
 class MotionLLM(nn.Module):
     def __init__(self, args):
@@ -14,9 +14,9 @@ class MotionLLM(nn.Module):
         self.tokenizer = AutoTokenizer.from_pretrained(self.args.llm_backbone)
         self.llm = AutoModelForCausalLM.from_pretrained(self.args.llm_backbone)
         self.nb_text_tokens = len(self.tokenizer)
-        self.mean = np.load('checkpoints/t2m/VQVAEV3_CB1024_CMT_H1024_NRES3/meta/mean.npy')
-        self.std = np.load('checkpoints/t2m/VQVAEV3_CB1024_CMT_H1024_NRES3/meta/std.npy')
-        self.device = args.device
+        self.mean = np.load('MotionAgent/checkpoints/t2m/VQVAEV3_CB1024_CMT_H1024_NRES3/meta/mean.npy')
+        self.std = np.load('MotionAgent/checkpoints/t2m/VQVAEV3_CB1024_CMT_H1024_NRES3/meta/std.npy')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.training_task = None # t2m or m2t for training
 
         self.lora_config_t2m = LoraConfig(
@@ -40,7 +40,7 @@ class MotionLLM(nn.Module):
 
         self.args.nb_joints = 22
         self.args.dataname = 't2m'
-        self.args.vq_path = "ckpt/vqvae.pth"
+        self.args.vq_path = "/Volumes/KG1TB/Developement/poseResearch/MotionAgent/ckpt/vqvae.pth"
         self.net = vqvae.HumanVQVAE(self.args, ## use args to define different parameters in different quantizers
                            self.args.nb_code,
                            self.args.code_dim,

@@ -6,7 +6,7 @@ def get_args_parser():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     
     ## device
-    parser.add_argument('--device', type=str, default='cuda:0', help='device')
+    parser.add_argument('--device', type=str, default='mps', help='device')
 
     ## LLM 
     parser.add_argument('--llm-backbone', type=str, default='google/gemma-2-2b-it', help='name of huggingface model backbone')
@@ -51,7 +51,7 @@ def get_args_parser():
     parser.add_argument('--beta', type=float, default=1.0, help='commitment loss in standard VQ')
 
     ## resume
-    parser.add_argument("--resume-pth", type=str, default=None, help='resume pth for VQ')
+    parser.add_argument("--resume-pth", type=str, default="/Volumes/KG1TB/Developement/poseResearch/MotionAgent/ckpt/vqvae.pth", help='resume pth for VQ')
     parser.add_argument("--resume-gpt", type=str, default=None, help='resume pth for GPT')
     
     

@@ -1,6 +1,6 @@
 import torch.nn as nn
-from models.encdec import Encoder, Decoder
-from models.quantize_cnn import QuantizeEMAReset, Quantizer, QuantizeEMA, QuantizeReset
+from MotionAgent.models.encdec import Encoder, Decoder
+from MotionAgent.models.quantize_cnn import QuantizeEMAReset, Quantizer, QuantizeEMA, QuantizeReset
 
 
 class VQVAE_251(nn.Module):

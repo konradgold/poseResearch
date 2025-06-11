@@ -9,13 +9,14 @@ class QuantizeEMAReset(nn.Module):
         self.nb_code = nb_code
         self.code_dim = code_dim
         self.mu = args.mu
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.reset_codebook()
         
     def reset_codebook(self):
         self.init = False
         self.code_sum = None
         self.code_count = None
-        self.register_buffer('codebook', torch.zeros(self.nb_code, self.code_dim).cuda())
+        self.register_buffer('codebook', torch.zeros(self.nb_code, self.code_dim).to(self.device))
 
     def _tile(self, x):
         nb_code_x, code_dim = x.shape
@@ -305,12 +306,13 @@ class QuantizeEMA(nn.Module):
         self.code_dim = code_dim
         self.mu = 0.99
         self.reset_codebook()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
     def reset_codebook(self):
         self.init = False
         self.code_sum = None
         self.code_count = None
-        self.register_buffer('codebook', torch.zeros(self.nb_code, self.code_dim).cuda())
+        self.register_buffer('codebook', torch.zeros(self.nb_code, self.code_dim).to(self.device))
 
     def _tile(self, x):
         nb_code_x, code_dim = x.shape

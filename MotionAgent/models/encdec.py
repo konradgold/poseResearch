@@ -1,5 +1,5 @@
 import torch.nn as nn
-from models.resnet import Resnet1D
+from MotionAgent.models.resnet import Resnet1D
 
 class Encoder(nn.Module):
     def __init__(self,
