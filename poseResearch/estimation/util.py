@@ -8,14 +8,14 @@ class Estimation(ABC):
     
     @abstractmethod
     def forward(self, batch) -> torch.Tensor:
-        state = self._forward(batch)
-        if self.output_check(state):
-            return state
+        output = self._forward(batch)
+        if self.output_check(output):
+            return output
         else:
             raise RuntimeError(f"{self.identifier} did not return expected output")
 
     @abstractmethod
-    def output_check(self, state) -> bool:
+    def output_check(self, output) -> bool:
         pass
 
     @abstractmethod
