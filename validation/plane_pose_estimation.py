@@ -10,11 +10,11 @@ class PlanePoseEstimator:
             self.model = YOLO(model)
         else:
             self.model = YOLO("yolo11n-pose.pt")
-        
+
         self.config_dict = dict()
         if config is not None:
-            if os.path.isfile(config) and config.lower().endswith(('.yaml', '.yml')):
-                with open(config, 'r') as f:
+            if os.path.isfile(config) and config.lower().endswith((".yaml", ".yml")):
+                with open(config, "r") as f:
                     self.config_dict = yaml.safe_load(f)
         else:
             self.config_dict["sample_rate"] = 4
@@ -32,9 +32,6 @@ class PlanePoseEstimator:
                     images.append(img)
         finally:
             video_stream.release()
-        
+
         results = self.model(images)
         return [r.keypoints for r in results]
-
-
-
