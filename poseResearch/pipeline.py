@@ -1,5 +1,5 @@
 import torch
-from estimation.utils import Estimation
+from estimation.util import Estimation
 from utils.output_saver import OutputSaver
 
 class EstimationPipe:
