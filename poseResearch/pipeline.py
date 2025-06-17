@@ -11,9 +11,10 @@ class EstimationPipe:
     def forward(self, dataloader):
         for batch in dataloader:
             for module in self.pipe_classes:
-                output = module.forward(batch) # shape (#persons in batch, #frames, 17,3)
+                output = module.forward(batch)
                 self.output_saver.handle(output, module.config)
             assert isinstance(output, torch.Tensor)
+            # shape (#persons in batch, #frames, 17,3)
             assert output.size(1) == batch.size(0)
             assert output.size(2) == 17
             assert output.size(3) == 3
