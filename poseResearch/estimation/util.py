@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 import torch
 
+
 class Estimation(ABC):
 
     @abstractmethod
     def _forward(self, batch) -> torch.Tensor:
         pass
-    
+
     @abstractmethod
     def forward(self, batch) -> torch.Tensor:
         output = self._forward(batch)

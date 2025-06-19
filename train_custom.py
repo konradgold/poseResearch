@@ -361,9 +361,7 @@ def train_with_config(args, opts):
             # Save checkpoints
             chk_path = os.path.join(opts.checkpoint, "epoch_{}.bin".format(epoch))
             chk_path_latest = os.path.join(opts.checkpoint, "latest_epoch.bin")
-            chk_path_best = os.path.join(
-                opts.checkpoint, "best_epoch.bin"
-            )
+            chk_path_best = os.path.join(opts.checkpoint, "best_epoch.bin")
 
             save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss)
             if (epoch + 1) % args.checkpoint_frequency == 0:
