@@ -2,7 +2,7 @@
 """
 Video Pose Validation Script
 
-This script loads a video and ground truth keypoints, uses YOLO pose model 
+This script loads a video and ground truth keypoints, uses YOLO pose model
 to generate 2D keypoint predictions, and validates using similarity metrics
 between projected ground truth and YOLO predictions.
 """
