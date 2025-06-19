@@ -11,3 +11,5 @@ black . --check
 ```
 
 Run without the `--check` flag to format the files.
+
+If you add a directory to root that should not be formatted, add it to the exclude pattern in the [pyproject.toml](pyproject.toml).
