@@ -1,8 +1,8 @@
 from abc import abstractmethod
 import torch
-from poseResearch.estimation.util import Estimation
+from ..util import Estimation
 
-class 2DPoseEstimation(Estimation):
+class TwoDPoseEstimation(Estimation):
     """
     Abstract base class for 2D pose estimation.
     Input: images as a tensor of shape (T, H, W, C)

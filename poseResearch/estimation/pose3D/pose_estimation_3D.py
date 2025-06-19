@@ -1,8 +1,8 @@
 from abc import abstractmethod
 import torch
-from poseResearch.estimation.util import Estimation
+from ..util import Estimation
 
-class 3DPoseEstimation(Estimation):
+class ThreeDPoseEstimation(Estimation):
     """
     Abstract base class for 3D pose estimation.
     Input: 2D poses as a tensor of shape (P, T, Nk, D)

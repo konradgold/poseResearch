@@ -1,5 +1,6 @@
 from abc import abstractmethod
 import torch
+from ..util import Estimation
 
 class PreprocessEstimation(Estimation):
     """
