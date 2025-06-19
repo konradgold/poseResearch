@@ -21,3 +21,16 @@ dependencies = [
     "transformers>=4.46.3",
     "ultralytics>=8.3.146",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+# Exclude all directories except the ones we want
+^(?!dataset/|frontend/|pose_estimation/|poseEvaluator/|poseResearch/|scripts/|validation/).*$
+'''
+# Enforce LF line endings
+skip-string-normalization = false
+# Additional customization options:
+# - skip-magic-trailing-comma = false  # Keep trailing commas in multiline structures
