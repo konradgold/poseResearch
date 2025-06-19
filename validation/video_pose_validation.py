@@ -15,7 +15,7 @@ import json
 import glob
 import numpy as np
 from datetime import datetime
-from typing import List, Tuple, Dict, Union
+from typing import List, Tuple, Dict
 from ultralytics import YOLO
 from pose_validation import PoseValidation
 import yaml
@@ -119,9 +119,9 @@ class GroundTruthLoader:
         # Get all JSON files in the directory and sort them lexically
         json_files = sorted([f for f in glob.glob(os.path.join(json_dir, "*.json"))])
         # Map frame_names (without extension) to JSON files
-        json_file_map = {
-            os.path.splitext(os.path.basename(f))[0]: f for f in json_files
-        }
+        # json_file_map = {
+        #     os.path.splitext(os.path.basename(f))[0]: f for f in json_files
+        # }
 
         # Iterate through sorted json_files directly
         for json_path in json_files:

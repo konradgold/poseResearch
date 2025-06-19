@@ -3,10 +3,8 @@ import numpy as np
 import cv2
 from typing import Any, List, Tuple, Union
 from MotionBERT.lib.model.loss import *
-from MotionBERT.lib.model.model_action import ActionNet
 from MotionBERT.lib.utils.learning import load_backbone
 from MotionBERT.lib.utils.tools import get_config
-from MotionBERT.lib.utils.utils_data import flip_data
 from ultralytics import YOLO
 import argparse
 
