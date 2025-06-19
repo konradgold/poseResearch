@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 
+
 class Estimation(ABC):
     """
     Abstract base class for estimation in the pipeline.

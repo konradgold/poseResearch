@@ -17,10 +17,8 @@ from torch.utils.data import DataLoader
 from MotionBERT.lib.utils.tools import *
 from MotionBERT.lib.utils.learning import *
 from MotionBERT.lib.utils.utils_data import flip_data
-from MotionBERT.lib.data.dataset_motion_2d import PoseTrackDataset2D, InstaVDataset2D
 from MotionBERT.lib.data.dataset_motion_3d import MotionDataset2D
 from MotionBERT.lib.data.augmentation import Augmenter2D
-from MotionBERT.lib.data.datareader_h36m import DataReaderH36M
 from MotionBERT.lib.model.loss import *
 
 
@@ -363,9 +361,7 @@ def train_with_config(args, opts):
             # Save checkpoints
             chk_path = os.path.join(opts.checkpoint, "epoch_{}.bin".format(epoch))
             chk_path_latest = os.path.join(opts.checkpoint, "latest_epoch.bin")
-            chk_path_best = os.path.join(
-                opts.checkpoint, "best_epoch.bin".format(epoch)
-            )
+            chk_path_best = os.path.join(opts.checkpoint, "best_epoch.bin")
 
             save_checkpoint(chk_path_latest, epoch, lr, optimizer, model_pos, min_loss)
             if (epoch + 1) % args.checkpoint_frequency == 0:
