@@ -1,5 +1,4 @@
 from enum import StrEnum
-import cv2
 
 
 class CameraAngle(StrEnum):
