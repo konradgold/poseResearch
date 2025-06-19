@@ -2,12 +2,14 @@ from abc import abstractmethod
 import torch
 from ..util import Estimation
 
+
 class PreprocessEstimation(Estimation):
     """
     Abstract base class for preprocessing steps before 2D pose estimation.
     Input: images as a tensor of shape (T, H, W, C)
     Output: images as a tensor of shape (T, H, W, C)
     """
+
     def __init__(self):
         super().__init__()
 
@@ -31,9 +33,9 @@ class PreprocessEstimation(Estimation):
         if output.ndim != 4:
             return False
         T, H, W, C = output.shape
-        expected_C = getattr(self, 'num_channels', 3)
+        expected_C = getattr(self, "num_channels", 3)
         if C != expected_C:
             return False
         if T < 1 or H < 1 or W < 1:
             return False
-        return True 
+        return True

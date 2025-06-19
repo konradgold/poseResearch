@@ -3,43 +3,53 @@ from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 
+
 # Dummy implementations for testing
 class DummyPreprocess(PreprocessEstimation):
     @property
     def config(self):
         return {}
+
     @property
     def identifier(self):
         return "DummyPreprocess"
+
     def _forward(self, images: torch.Tensor) -> torch.Tensor:
         # Just return the input
         return images
+
 
 class Dummy2DPose(TwoDPoseEstimation):
     @property
     def config(self):
         return {}
+
     @property
     def identifier(self):
         return "Dummy2DPose"
+
     def _forward(self, images: torch.Tensor) -> torch.Tensor:
         # Simulate 2D pose output: (P, T, Nk, D)
         T, H, W, C = images.shape
         P = 1
-        Nk = getattr(self, 'num_keypoints', 17)
-        D = getattr(self, 'num_dims', 3)
+        Nk = getattr(self, "num_keypoints", 17)
+        D = getattr(self, "num_dims", 3)
         return torch.zeros((P, T, Nk, D))
+
 
 class Dummy3DPose(ThreeDPoseEstimation):
     @property
     def config(self):
         return {}
+
     @property
     def identifier(self):
         return "Dummy3DPose"
+
     def _forward(self, poses_2d: torch.Tensor) -> torch.Tensor:
         # Just return the input for test
         return poses_2d
+
 
 if __name__ == "__main__":
     # Create dummy input: (T, H, W, C)

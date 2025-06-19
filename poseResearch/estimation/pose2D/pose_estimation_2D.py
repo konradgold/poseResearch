@@ -2,12 +2,14 @@ from abc import abstractmethod
 import torch
 from ..util import Estimation
 
+
 class TwoDPoseEstimation(Estimation):
     """
     Abstract base class for 2D pose estimation.
     Input: images as a tensor of shape (T, H, W, C)
     Output: 2D poses as a tensor of shape (P, T, Nk, D)
     """
+
     def __init__(self):
         super().__init__()
 
@@ -31,8 +33,8 @@ class TwoDPoseEstimation(Estimation):
         if output.ndim != 4:
             return False
         P, T, Nk, D = output.shape
-        expected_Nk = getattr(self, 'num_keypoints', 17)
-        expected_D = getattr(self, 'num_dims', 3)
+        expected_Nk = getattr(self, "num_keypoints", 17)
+        expected_D = getattr(self, "num_dims", 3)
         if D != expected_D or Nk != expected_Nk:
             return False
         if P < 1 or T < 1:

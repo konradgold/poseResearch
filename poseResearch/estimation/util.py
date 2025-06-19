@@ -14,10 +14,10 @@ class Estimation(ABC):
     - output_check: check if the output is valid
     """
 
-    @abstractmethod 
+    @abstractmethod
     def _forward(self, batch) -> torch.Tensor:
         pass
-    
+
     def forward(self, batch) -> torch.Tensor:
         output = self._forward(batch)
         if self.output_check(output):
