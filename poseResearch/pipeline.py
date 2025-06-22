@@ -1,6 +1,8 @@
 import torch
 from estimation.util import Estimation
 from utils.output_saver import OutputSaver
+from utils.visualizer import PoseVisualizer
+from typing import Optional
 
 
 class EstimationPipe:
@@ -10,18 +12,41 @@ class EstimationPipe:
         flatpose: Estimation,
         poselifting: Estimation,
         output_saver: OutputSaver,
+        visualizer_2d: Optional[PoseVisualizer] = None,
+        visualizer_3d: Optional[PoseVisualizer] = None,
     ):
-        self.pipe_classes = [preprocessor, flatpose, poselifting]
+        self.pipe_classes = [
+            ("preprocessor", preprocessor),
+            ("flatpose", flatpose), 
+            ("poselifting", poselifting)
+        ]
         self.output_saver = output_saver
+        self.visualizer_2d = visualizer_2d
+        self.visualizer_3d = visualizer_3d
 
     def forward(self, dataloader):
-        for batch in dataloader:
-            for module in self.pipe_classes:
-                output = module.forward(batch)
-                self.output_saver.handle(output, module.config)
-            assert isinstance(output, torch.Tensor)
-            # shape (#persons in batch, #frames, 17,3)
-            assert output.size(1) == batch.size(0)
-            assert output.size(2) == 17
-            assert output.size(3) == 3
-            yield output
+        for batch_idx, batch in enumerate(dataloader):
+            current_data = batch
+            batch_info = {"batch_idx": batch_idx, "original_batch_size": batch.size(0)}
+            
+            # Process through each stage
+            for stage_name, module in self.pipe_classes:
+                current_data = module.forward(current_data)
+                self.output_saver.handle(current_data, module.config)
+                
+                # Use separate visualizers for different stages
+                if stage_name == "flatpose" and self.visualizer_2d:
+                    if self.visualizer_2d.should_visualize(stage_name, batch_idx):
+                        self.visualizer_2d.visualize_2d_poses(current_data, batch_info, stage_name)
+                        
+                elif stage_name == "poselifting" and self.visualizer_3d:
+                    if self.visualizer_3d.should_visualize(stage_name, batch_idx):
+                        self.visualizer_3d.visualize_3d_poses(current_data, batch_info, stage_name)
+            
+            # Final output validation
+            assert isinstance(current_data, torch.Tensor)
+            # shape (#persons in batch, #frames, 17, 3)
+            assert current_data.size(0) == batch.size(0)  # Fixed: first dimension should match batch size
+            assert current_data.size(2) == 17
+            assert current_data.size(3) == 3
+            yield current_data
