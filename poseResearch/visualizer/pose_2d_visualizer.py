@@ -3,66 +3,43 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 from ..utils.visualizer import PoseVisualizer
+from ..utils.skeleton_config import SkeletonConfig
+from .skeleton_config import create_skeleton_config
 
 
 class Pose2DVisualizer(PoseVisualizer):
-    """Sophisticated 2D pose visualizer for flatpose outputs"""
+    """Sophisticated 2D pose visualizer for flatpose outputs with configurable skeleton"""
     
     def __init__(self, visualize_every_n_batches: int = 1, save_plots: bool = True, 
                  output_dir: str = "./visualizations", show_labels: bool = False,
-                 max_people: int = 2):
+                 max_people: int = 2, skeleton_config: SkeletonConfig = None,
+                 skeleton_type: str = "coco"):
         self.visualize_every_n_batches = visualize_every_n_batches
         self.save_plots = save_plots
         self.output_dir = output_dir
         self.show_labels = show_labels
         self.max_people = max_people
-        self.setup_skeleton()
         
-    def setup_skeleton(self):
-        """Setup skeleton structure and colors for 2D visualization"""
-        # COCO 17 keypoint connections for skeleton visualization
-        self.skeleton_links = [
-            (0, 1), (0, 2), (1, 3), (2, 4),  # head
-            (5, 6), (5, 7), (7, 9), (6, 8), (8, 10),  # arms
-            (5, 11), (6, 12), (11, 12),  # torso
-            (11, 13), (13, 15), (12, 14), (14, 16)  # legs
-        ]
+        # Set up skeleton configuration (default to COCO for 2D)
+        if skeleton_config is not None:
+            self.skeleton_config = skeleton_config
+        else:
+            self.skeleton_config = create_skeleton_config(skeleton_type)
         
-        # Keypoint names (COCO 17)
-        self.keypoint_names = [
-            'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
-            'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-            'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
-            'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
-        ]
+        # Cache skeleton properties for performance
+        self._cache_skeleton_properties()
         
-        # Define body part colors for more intuitive visualization
-        self.body_part_colors = {
-            'head': 'red',
-            'torso': 'blue', 
-            'left_arm': 'green',
-            'right_arm': 'orange',
-            'left_leg': 'purple',
-            'right_leg': 'brown'
-        }
-        
-        # Map keypoints to body parts
-        self.keypoint_body_parts = [
-            'head', 'head', 'head', 'head', 'head',  # 0-4: face
-            'torso', 'torso', 'left_arm', 'right_arm',  # 5-8: shoulders, elbows
-            'left_arm', 'right_arm', 'torso', 'torso',  # 9-12: wrists, hips
-            'left_leg', 'right_leg', 'left_leg', 'right_leg'  # 13-16: knees, ankles
-        ]
-        
-        # Set up colors for keypoints based on body parts
-        self.keypoint_colors = [self.body_part_colors[part] for part in self.keypoint_body_parts]
-        
-        # Set up colors for skeleton links
-        self.skeleton_colors = []
-        for start_idx, end_idx in self.skeleton_links:
-            # Use the color of the first keypoint in the connection
-            color = self.keypoint_colors[start_idx]
-            self.skeleton_colors.append(color)
+    def _cache_skeleton_properties(self):
+        """Cache skeleton properties for better performance during visualization"""
+        self.keypoint_names = self.skeleton_config.get_keypoint_names()
+        self.keypoint_id2name = self.skeleton_config.get_keypoint_id2name()
+        self.keypoint_name2id = self.skeleton_config.get_keypoint_name2id()
+        self.skeleton_links = self.skeleton_config.get_skeleton_links()
+        self.body_part_colors = self.skeleton_config.get_body_part_colors()
+        self.keypoint_body_parts = self.skeleton_config.get_keypoint_body_parts()
+        self.keypoint_colors = self.skeleton_config.get_keypoint_colors()
+        self.skeleton_colors = self.skeleton_config.get_skeleton_colors()
+        self.num_keypoints = self.skeleton_config.get_num_keypoints()
     
     def should_visualize(self, stage_name: str, batch_idx: int) -> bool:
         """Only visualize flatpose stages, every N batches"""
@@ -75,7 +52,7 @@ class Pose2DVisualizer(PoseVisualizer):
         
         Args:
             ax: Matplotlib axis
-            keypoints: Array of shape (17, 2) containing 2D keypoint coordinates
+            keypoints: Array of shape (num_keypoints, 2) containing 2D keypoint coordinates
             person_id: ID of the person (for color variation)
             title: Title for the subplot
             image: Optional background image to overlay pose on
@@ -87,6 +64,16 @@ class Pose2DVisualizer(PoseVisualizer):
             return
             
         keypoints = np.array(keypoints)
+        
+        # Validate keypoint dimensions
+        if keypoints.shape[0] != self.num_keypoints:
+            print(f"Warning: Expected {self.num_keypoints} keypoints, got {keypoints.shape[0]}")
+            # Pad or truncate as needed
+            if keypoints.shape[0] < self.num_keypoints:
+                padding = np.full((self.num_keypoints - keypoints.shape[0], 2), np.nan)
+                keypoints = np.vstack([keypoints, padding])
+            else:
+                keypoints = keypoints[:self.num_keypoints]
         
         # Show background image if provided
         if image is not None:
@@ -150,6 +137,10 @@ class Pose2DVisualizer(PoseVisualizer):
         poses_np = poses_2d.detach().cpu().numpy()
         batch_size, num_frames, num_keypoints, _ = poses_np.shape
         
+        # Validate input dimensions
+        if num_keypoints != self.num_keypoints:
+            print(f"Warning: Expected {self.num_keypoints} keypoints for {self.skeleton_config.__class__.__name__}, got {num_keypoints}")
+        
         # Create figure with subplots for multiple people
         fig = plt.figure(figsize=(8 * min(self.max_people, 2), 8))
         num_people = min(batch_size, self.max_people)
@@ -165,7 +156,7 @@ class Pose2DVisualizer(PoseVisualizer):
                 ax = fig.add_subplot(subplot_rows, subplot_cols, person_idx + 1)
                 
                 if person_idx < num_people and num_frames > 0:
-                    keypoints = poses_np[person_idx, 0]  # First frame, shape: (17, 2)
+                    keypoints = poses_np[person_idx, 0]  # First frame, shape: (num_keypoints, 2)
                     title = f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}"
                     self.plot_single_pose_2d(ax, keypoints, person_id=person_idx, title=title)
                 else:
@@ -174,12 +165,23 @@ class Pose2DVisualizer(PoseVisualizer):
                     ax.set_title(f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}",
                                fontsize=12, fontweight='bold')
         
+        # Add a legend for body parts
+        legend_elements = []
+        for part, color in self.body_part_colors.items():
+            legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                            markerfacecolor=color, markersize=10, 
+                                            label=part.replace('_', ' ').title()))
+        
+        if num_people > 0:
+            fig.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(0.98, 0.98))
+        
         plt.tight_layout()
         
         if self.save_plots:
             import os
             os.makedirs(self.output_dir, exist_ok=True)
-            plt.savefig(f'{self.output_dir}/{stage_name}_batch_{batch_idx}_2d_detailed.png', 
+            skeleton_name = self.skeleton_config.__class__.__name__.replace('SkeletonConfig', '').lower()
+            plt.savefig(f'{self.output_dir}/{stage_name}_batch_{batch_idx}_2d_{skeleton_name}.png', 
                        dpi=150, bbox_inches='tight')
             plt.close()
         else:
@@ -195,7 +197,7 @@ class Pose2DVisualizer(PoseVisualizer):
         Create a pose overlay on a background image
         
         Args:
-            poses_2d: Tensor of shape (batch_size, frames, 17, 2)
+            poses_2d: Tensor of shape (batch_size, frames, num_keypoints, 2)
             background_image: Background image as numpy array
             person_idx: Which person to visualize
             frame_idx: Which frame to visualize
@@ -208,8 +210,26 @@ class Pose2DVisualizer(PoseVisualizer):
         if person_idx >= poses_np.shape[0] or frame_idx >= poses_np.shape[1]:
             return background_image
         
-        keypoints = poses_np[person_idx, frame_idx]  # Shape: (17, 2)
+        keypoints = poses_np[person_idx, frame_idx]  # Shape: (num_keypoints, 2)
+        
+        # Validate and pad/truncate keypoints if needed
+        if keypoints.shape[0] != self.num_keypoints:
+            if keypoints.shape[0] < self.num_keypoints:
+                padding = np.full((self.num_keypoints - keypoints.shape[0], 2), np.nan)
+                keypoints = np.vstack([keypoints, padding])
+            else:
+                keypoints = keypoints[:self.num_keypoints]
+        
         image_overlay = background_image.copy()
+        
+        # Create color map for OpenCV (BGR format)
+        color_map = {}
+        for part, hex_color in self.body_part_colors.items():
+            # Convert hex to BGR for OpenCV
+            hex_color = hex_color.lstrip('#')
+            rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            bgr = (rgb[2], rgb[1], rgb[0])  # Convert RGB to BGR
+            color_map[part] = bgr
         
         # Draw skeleton connections
         for i, (start_idx, end_idx) in enumerate(self.skeleton_links):
@@ -219,13 +239,9 @@ class Pose2DVisualizer(PoseVisualizer):
                 start_point = tuple(map(int, keypoints[start_idx]))
                 end_point = tuple(map(int, keypoints[end_idx]))
                 
-                # Convert color name to BGR for OpenCV
-                color_name = self.skeleton_colors[i]
-                color_map = {
-                    'red': (0, 0, 255), 'blue': (255, 0, 0), 'green': (0, 255, 0),
-                    'orange': (0, 165, 255), 'purple': (128, 0, 128), 'brown': (42, 42, 165)
-                }
-                color_bgr = color_map.get(color_name, (255, 255, 255))
+                # Get color for this skeleton link
+                part = self.keypoint_body_parts[start_idx]
+                color_bgr = color_map.get(part, (255, 255, 255))
                 
                 cv2.line(image_overlay, start_point, end_point, color_bgr, 3)
         
@@ -234,11 +250,29 @@ class Pose2DVisualizer(PoseVisualizer):
             if not np.isnan(x) and not np.isnan(y):
                 point = (int(x), int(y))
                 
-                # Convert color name to BGR
-                color_name = self.keypoint_colors[i]
-                color_bgr = color_map.get(color_name, (255, 255, 255))
+                # Get color for this keypoint
+                part = self.keypoint_body_parts[i]
+                color_bgr = color_map.get(part, (255, 255, 255))
                 
                 cv2.circle(image_overlay, point, 6, color_bgr, -1)
                 cv2.circle(image_overlay, point, 6, (255, 255, 255), 2)  # White border
         
-        return image_overlay 
+        return image_overlay
+    
+    def print_skeleton_info(self):
+        """Print information about the current skeleton configuration"""
+        self.skeleton_config.print_info()
+    
+    def get_skeleton_config(self) -> SkeletonConfig:
+        """Get the current skeleton configuration"""
+        return self.skeleton_config
+    
+    def set_skeleton_config(self, skeleton_config: SkeletonConfig):
+        """Set a new skeleton configuration"""
+        self.skeleton_config = skeleton_config
+        self._cache_skeleton_properties()
+    
+    def set_skeleton_type(self, skeleton_type: str):
+        """Set skeleton configuration by type name"""
+        self.skeleton_config = create_skeleton_config(skeleton_type)
+        self._cache_skeleton_properties() 
