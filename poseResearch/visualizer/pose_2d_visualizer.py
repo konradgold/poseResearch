@@ -2,9 +2,9 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-from ..utils.visualizer import PoseVisualizer
-from ..utils.skeleton_config import SkeletonConfig
-from .skeleton_config import create_skeleton_config
+from utils.visualizer import PoseVisualizer
+from utils.skeleton_config import SkeletonConfig
+from visualizer.skeleton_config import create_skeleton_config
 
 
 class Pose2DVisualizer(PoseVisualizer):
@@ -13,10 +13,13 @@ class Pose2DVisualizer(PoseVisualizer):
     def __init__(self, visualize_every_n_batches: int = 1, save_plots: bool = True, 
                  output_dir: str = "./visualizations", show_labels: bool = False,
                  max_people: int = 2, skeleton_config: SkeletonConfig = None,
-                 skeleton_type: str = "coco"):
+                 skeleton_type: str = "coco", create_videos: bool = False, 
+                 video_fps: int = 15):
+        # Initialize base class
+        super().__init__(output_dir=output_dir, create_videos=create_videos, video_fps=video_fps)
+        
         self.visualize_every_n_batches = visualize_every_n_batches
         self.save_plots = save_plots
-        self.output_dir = output_dir
         self.show_labels = show_labels
         self.max_people = max_people
         
@@ -275,4 +278,22 @@ class Pose2DVisualizer(PoseVisualizer):
     def set_skeleton_type(self, skeleton_type: str):
         """Set skeleton configuration by type name"""
         self.skeleton_config = create_skeleton_config(skeleton_type)
-        self._cache_skeleton_properties() 
+        self._cache_skeleton_properties()
+    
+    def create_all_videos(self) -> list:
+        """Create videos from 2D pose visualizations"""
+        if not self.create_videos:
+            return []
+        
+        created_videos = []
+        skeleton_name = self.skeleton_config.__class__.__name__.replace('SkeletonConfig', '').lower()
+        
+        # Create video from 2D pose frames
+        video_filename = f"2d_pose_animation_{skeleton_name}.mp4"
+        video_path = self.create_video_from_images(video_filename, "*_2d_*.png")
+        
+        if video_path:
+            created_videos.append(video_path)
+            print(f"✅ Created 2D pose video: {video_path}")
+        
+        return created_videos 

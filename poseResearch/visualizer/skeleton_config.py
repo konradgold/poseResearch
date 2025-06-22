@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple
-from ..utils.skeleton_config import SkeletonConfig
+from utils.skeleton_config import SkeletonConfig
 
 
 class AnatomicalSkeletonConfig(SkeletonConfig):

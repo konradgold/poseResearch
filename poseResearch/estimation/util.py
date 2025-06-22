@@ -20,12 +20,12 @@ class Estimation(ABC):
     def output_check(self, output) -> bool:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def config(self) -> dict:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def identifier(self) -> str:
         pass

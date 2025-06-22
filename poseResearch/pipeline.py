@@ -23,6 +23,7 @@ class EstimationPipe:
         self.output_saver = output_saver
         self.visualizer_2d = visualizer_2d
         self.visualizer_3d = visualizer_3d
+        self.processed_batches = 0
 
     def forward(self, dataloader):
         for batch_idx, batch in enumerate(dataloader):
@@ -49,4 +50,36 @@ class EstimationPipe:
             assert current_data.size(0) == batch.size(0)  # Fixed: first dimension should match batch size
             assert current_data.size(2) == 17
             assert current_data.size(3) == 3
+            
+            self.processed_batches += 1
             yield current_data
+    
+    def create_videos_from_visualizations(self, cleanup_images: bool = True):
+        """Create MP4 videos using visualizer's built-in video creation"""
+        print("Creating videos from visualization images...")
+        all_created_videos = []
+        
+        # Create videos for 2D visualizations
+        if self.visualizer_2d:
+            videos_2d = self.visualizer_2d.create_all_videos()
+            all_created_videos.extend(videos_2d)
+            if cleanup_images and videos_2d:
+                self.visualizer_2d.cleanup_images_after_video(keep_sample=True)
+        
+        # Create videos for 3D visualizations  
+        if self.visualizer_3d:
+            videos_3d = self.visualizer_3d.create_all_videos()
+            all_created_videos.extend(videos_3d)
+            if cleanup_images and videos_3d:
+                self.visualizer_3d.cleanup_images_after_video(keep_sample=True)
+        
+        if all_created_videos:
+            print(f"✅ Successfully created {len(all_created_videos)} videos:")
+            for video in all_created_videos:
+                print(f"   - {video}")
+            if cleanup_images:
+                print("🧹 Cleaned up image files to save space (kept sample images)")
+        else:
+            print("❌ No videos were created (check if create_videos=True in visualizers)")
+        
+        return all_created_videos
