@@ -3,14 +3,24 @@ import torch
 
 
 class Estimation(ABC):
+    """
+    Abstract base class for estimation in the pipeline.
+    To implement a new estimation, inherit from this class and implement the following methods:
+    - _forward: forward pass of the estimation
+    - output_check: check if the output is valid
+    - config: configuration of the estimation
+    - identifier: identifier of the estimation
+    - forward: forward pass of the estimation
+    - output_check: check if the output is valid
+    """
 
     @abstractmethod
     def _forward(self, batch) -> torch.Tensor:
         pass
 
-    @abstractmethod
     def forward(self, batch) -> torch.Tensor:
         output = self._forward(batch)
+        print("Forward of", self.identifier, "is done")
         if self.output_check(output):
             return output
         else:
@@ -20,12 +30,12 @@ class Estimation(ABC):
     def output_check(self, output) -> bool:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def config(self) -> dict:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     def identifier(self) -> str:
         pass
