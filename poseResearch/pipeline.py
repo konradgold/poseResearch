@@ -47,7 +47,7 @@ class EstimationPipe:
             # Final output validation
             assert isinstance(current_data, torch.Tensor)
             # shape (#persons in batch, #frames, 17, 3)
-            assert current_data.size(0) == batch.size(0)  # Fixed: first dimension should match batch size
+            assert current_data.size(0) == batch.size(0)
             assert current_data.size(2) == 17
             assert current_data.size(3) == 3
             
