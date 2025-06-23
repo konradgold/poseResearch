@@ -1,7 +1,7 @@
 [project]
-name = "poseresearch"
+name = "poseResearch"
 version = "0.1.0"
-description = "Add your description here"
+description = "Pose Estimation and Prediction Pipeline"
 readme = "README.md"
 requires-python = ">=3.8.20"
 dependencies = [
@@ -21,3 +21,48 @@ dependencies = [
     "transformers>=4.46.3",
     "ultralytics>=8.3.146",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+# Exclude all directories except the ones we want
+exclude = '''
+/(
+    .github
+  | .vscode
+  | chatPose
+  | configs
+  | MaskAnyone
+  | models
+  | Motion-Agent
+  | MotionBERT
+  | pose_estimation
+  | PoseGPT
+)/
+'''
+skip-string-normalization = false
+# Additional customization options:
+# - skip-magic-trailing-comma = false  # Keep trailing commas in multiline structures
+
+[tool.ruff]
+line-length = 88
+exclude = [
+    ".git",
+    ".venv",
+    "build",
+    "dist",
+    "__pycache__",
+    "*.egg-info",
+    ".github",
+    ".vscode",
+    "chatPose",
+    "configs",
+    "MaskAnyone",
+    "models",
+    "Motion-Agent",
+    "MotionBERT",
+    "pose_estimation",
+    "PoseGPT",
+]
+extend-ignore = ["F403", "F405"]
