@@ -179,3 +179,7 @@ validation/pose_validation*
 events.out*
 *.pt
 *.pth
+*.npy
+*.tar
+*.pkl
+MotionAgent/checkpoints
