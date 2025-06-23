@@ -142,11 +142,62 @@ class PoseVisualizer(ABC):
         
         return created_videos
     
+    def visualize_all_frames(self, poses: torch.Tensor, source_name: str, stage_name: str = "poses"):
+        """
+        Visualize all frames in a pose tensor and optionally create video
+        
+        Args:
+            poses: Tensor of shape (people, frames, keypoints, 2/3) 
+            source_name: Name for this visualization session
+            stage_name: Stage name for file naming
+        """
+        num_people, num_frames = poses.shape[0], poses.shape[1]
+        print(f"Processing {num_people} people across {num_frames} frames...")
+        
+        # Compute fixed axis limits if this visualizer supports it (3D visualizers)
+        if hasattr(self, 'compute_fixed_axis_limits') and poses.shape[3] == 3:
+            self.compute_fixed_axis_limits(poses)
+        
+        # Process each frame individually
+        for frame_idx in range(num_frames):
+            # Extract single frame: (people, 1, keypoints, 2/3)
+            frame_poses = poses[:, frame_idx:frame_idx+1, :, :]
+            
+            # Create batch info for this frame
+            batch_info = {
+                "batch_idx": frame_idx,
+                "source": source_name,
+                "num_people": num_people,
+                "num_frames": 1,
+                "frame_id": frame_idx
+            }
+            
+            # Visualize based on pose dimensions
+            if poses.shape[3] == 2:  # 2D poses
+                self.visualize_2d_poses(frame_poses, batch_info, stage_name)
+            elif poses.shape[3] == 3:  # 3D poses
+                self.visualize_3d_poses(frame_poses, batch_info, stage_name)
+            
+            if frame_idx % 50 == 0:  # Progress update every 50 frames
+                print(f"Processed frame {frame_idx+1}/{num_frames}")
+        
+        print(f"All frames visualized and saved to {self.output_dir}")
+        
+        # Create video if enabled
+        if self.create_videos:
+            created_videos = self.create_all_videos()
+            if created_videos:
+                print(f"Successfully created videos: {created_videos}")
+                self.cleanup_images_after_video()
+                return created_videos
+        
+        return []
+    
     def get_created_videos(self) -> list:
         """Get list of all videos created by this visualizer"""
         return self._created_videos.copy()
     
-    def cleanup_images_after_video(self, keep_sample: bool = True):
+    def cleanup_images_after_video(self):
         """
         Clean up image files after video creation to save space
         
@@ -158,12 +209,7 @@ class PoseVisualizer(ABC):
         
         image_files = sorted(glob.glob(os.path.join(self.output_dir, "*.png")))
         
-        if keep_sample:
-            # Keep every 50th image as samples
-            files_to_keep = image_files[::50][:5]  # Keep up to 5 sample images
-            files_to_remove = [f for f in image_files if f not in files_to_keep]
-        else:
-            files_to_remove = image_files
+        files_to_remove = image_files
         
         removed_count = 0
         for image_file in files_to_remove:

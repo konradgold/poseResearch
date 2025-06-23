@@ -64,22 +64,13 @@ class EstimationPipe:
             videos_2d = self.visualizer_2d.create_all_videos()
             all_created_videos.extend(videos_2d)
             if cleanup_images and videos_2d:
-                self.visualizer_2d.cleanup_images_after_video(keep_sample=True)
+                self.visualizer_2d.cleanup_images_after_video()
         
         # Create videos for 3D visualizations  
         if self.visualizer_3d:
             videos_3d = self.visualizer_3d.create_all_videos()
             all_created_videos.extend(videos_3d)
             if cleanup_images and videos_3d:
-                self.visualizer_3d.cleanup_images_after_video(keep_sample=True)
-        
-        if all_created_videos:
-            print(f"✅ Successfully created {len(all_created_videos)} videos:")
-            for video in all_created_videos:
-                print(f"   - {video}")
-            if cleanup_images:
-                print("🧹 Cleaned up image files to save space (kept sample images)")
-        else:
-            print("❌ No videos were created (check if create_videos=True in visualizers)")
+                self.visualizer_3d.cleanup_images_after_video()
         
         return all_created_videos
