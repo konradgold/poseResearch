@@ -1,5 +1,8 @@
 import torch
 from estimation.util import Estimation
+from estimation.preprocess.preprocess_estimation import PreprocessEstimation
+from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
+from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from utils.output_saver import OutputSaver
 from utils.visualizer import PoseVisualizer
 from typing import Optional
@@ -8,9 +11,9 @@ from typing import Optional
 class EstimationPipe:
     def __init__(
         self,
-        preprocessor: Estimation,
-        flatpose: Estimation,
-        poselifting: Estimation,
+        preprocessor: PreprocessEstimation,
+        flatpose: TwoDPoseEstimation,
+        poselifting: ThreeDPoseEstimation,
         output_saver: OutputSaver,
         visualizer_2d: Optional[PoseVisualizer] = None,
         visualizer_3d: Optional[PoseVisualizer] = None,
