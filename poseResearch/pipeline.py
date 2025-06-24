@@ -32,10 +32,25 @@ class EstimationPipe:
             current_data = batch
             batch_info = {"batch_idx": batch_idx, "original_batch_size": batch.size(0)}
 
-            # Process through each stage
+            # Use dataloader to determine stage flow
+            start_stage = self.data_loader.get_next_stage()
+            if start_stage != "preprocessor":
+                stored_data = self.data_loader.get_input_for_stage(start_stage)
+                if stored_data is not None:
+                    current_data = stored_data
+
+            # Process through stages using dataloader logic
             for stage_name, module in self.pipe_classes:
+                if self.data_loader.should_skip_stage(stage_name):
+                    continue
+
                 current_data = module.forward(current_data)
-                self.output_saver.handle(current_data, module.config)
+                # Store intermediate results in dataloader
+                stage_config = {
+                    "stage_name": stage_name,
+                    **getattr(module, "config", {}),
+                }
+                self.data_loader.handle(current_data, stage_config)
 
                 # Use separate visualizers for different stages
                 if stage_name == "flatpose" and self.visualizer_2d:
