@@ -2,9 +2,9 @@ import torch
 from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
-from utils.output_saver import OutputSaver
+from poseResearch.utils.data_loader import DataLoader
 from utils.visualizer import PoseVisualizer
-from typing import Optional
+from typing import Optional, Tuple, List, Generator, Dict, Any
 
 
 class EstimationPipe:
@@ -13,21 +13,21 @@ class EstimationPipe:
         preprocessor: PreprocessEstimation,
         flatpose: TwoDPoseEstimation,
         poselifting: ThreeDPoseEstimation,
-        output_saver: OutputSaver,
+        data_loader: DataLoader,
         visualizer_2d: Optional[PoseVisualizer] = None,
         visualizer_3d: Optional[PoseVisualizer] = None,
-    ):
-        self.pipe_classes = [
+    ) -> None:
+        self.pipe_classes: List[Tuple[str, Any]] = [
             ("preprocessor", preprocessor),
             ("flatpose", flatpose),
             ("poselifting", poselifting),
         ]
-        self.output_saver = output_saver
-        self.visualizer_2d = visualizer_2d
-        self.visualizer_3d = visualizer_3d
-        self.processed_batches = 0
+        self.data_loader: DataLoader = data_loader
+        self.visualizer_2d: Optional[PoseVisualizer] = visualizer_2d
+        self.visualizer_3d: Optional[PoseVisualizer] = visualizer_3d
+        self.processed_batches: int = 0
 
-    def forward(self, dataloader):
+    def forward(self, dataloader: Any) -> Generator[torch.Tensor, None, None]:
         for batch_idx, batch in enumerate(dataloader):
             current_data = batch
             batch_info = {"batch_idx": batch_idx, "original_batch_size": batch.size(0)}

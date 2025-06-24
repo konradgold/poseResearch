@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class OutputSaver(ABC):
+class DataLoader(ABC):
 
     @abstractmethod
     def handle(self, output, config):

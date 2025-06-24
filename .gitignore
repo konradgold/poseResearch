@@ -185,3 +185,4 @@ events.out*
 MotionAgent/checkpoints
 
 *.mp4
+*.png
