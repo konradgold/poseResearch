@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Lean example: Pipeline auto-detects where to start based on dataloader content.
+Lean example: DataLoader manages all input data, pipeline just runs stages.
 """
 
 import torch
@@ -52,20 +52,21 @@ class Dummy3DPose(ThreeDPoseEstimation):
 
 
 def example_1_full_pipeline():
-    """Full pipeline from scratch."""
+    """Full pipeline from raw frames."""
     print("=== Full Pipeline ===")
 
-    data_loader = DataLoader()
+    data_loader = DataLoader(save_path="results.json")
     pipeline = EstimationPipe(
         DummyPreprocessor(), Dummy2DPose(), Dummy3DPose(), data_loader
     )
 
-    batches = [torch.randn(5, 480, 640, 3)]
+    # Set input data in dataloader
+    raw_frames = torch.randn(5, 480, 640, 3)
+    data_loader.set_input(raw_frames)
 
-    for result in pipeline.forward(batches):
-        print(f"Final result: {result.shape}")
-
-    data_loader.save_json("results.json")
+    # Run pipeline - no parameters needed!
+    result = pipeline.forward()
+    print(f"Final result: {result.shape}")
 
 
 def example_2_from_2d_poses():
@@ -75,19 +76,18 @@ def example_2_from_2d_poses():
     data_loader = DataLoader()
     data_loader.load_json("results.json")  # Has 2D poses
 
-    # Same pipeline - auto-detects to start from poselifting
+    # Pipeline auto-detects and starts from poselifting
     pipeline = EstimationPipe(
         DummyPreprocessor(), Dummy2DPose(), Dummy3DPose(), data_loader
     )
 
-    dummy_batch = [torch.randn(1, 1, 1, 1)]  # Won't be used
-
-    for result in pipeline.forward(dummy_batch):
-        print(f"3D from stored 2D: {result.shape}")
+    # No input needed - uses stored 2D poses
+    result = pipeline.forward()
+    print(f"3D from stored 2D: {result.shape}")
 
 
 def example_3_manual_2d_input():
-    """Manually add 2D poses and auto-continue."""
+    """Manually add 2D poses and run 3D lifting."""
     print("\n=== Manual 2D Input ===")
 
     data_loader = DataLoader()
@@ -101,13 +101,28 @@ def example_3_manual_2d_input():
         DummyPreprocessor(), Dummy2DPose(), Dummy3DPose(), data_loader
     )
 
-    dummy_batch = [torch.randn(1, 1, 1, 1)]
+    result = pipeline.forward()
+    print(f"3D from manual 2D: {result.shape}")
 
-    for result in pipeline.forward(dummy_batch):
-        print(f"3D from manual 2D: {result.shape}")
+
+def example_4_individual_stage():
+    """Use dataloader's run_stage method directly."""
+    print("\n=== Individual Stage Usage ===")
+
+    data_loader = DataLoader()
+
+    # Add 2D poses
+    poses_2d = torch.randn(2, 8, 17, 3)
+    data_loader.handle(poses_2d, {"stage_name": "flatpose"})
+
+    # Run only 3D lifting stage
+    pose_3d_model = Dummy3DPose()
+    result = data_loader.run_stage(pose_3d_model, "flatpose")
+    print(f"Direct stage result: {result.shape}")
 
 
 if __name__ == "__main__":
     example_1_full_pipeline()
     example_2_from_2d_poses()
     example_3_manual_2d_input()
+    example_4_individual_stage()

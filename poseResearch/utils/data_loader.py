@@ -8,12 +8,26 @@ from pathlib import Path
 class DataLoader:
     """
     Minimal dataloader for pipeline stages.
-    Stores intermediate results and manages stage flow.
+    Stores intermediate results, manages stage flow, and provides input data.
     """
 
     def __init__(self, save_path: Optional[str] = None):
         self.data_store: Dict[str, Any] = {}
         self.save_path = Path(save_path) if save_path else None
+        self.input_data: Optional[torch.Tensor] = None
+
+    def set_input(self, input_data: torch.Tensor) -> None:
+        """Set the initial input data (e.g., raw video frames)."""
+        self.input_data = input_data
+
+    def get_current_input(self) -> Optional[torch.Tensor]:
+        """Get the appropriate input data for the next stage to run."""
+        next_stage = self.get_next_stage()
+
+        if next_stage == "preprocessor":
+            return self.input_data
+        else:
+            return self.get_input_for_stage(next_stage)
 
     def handle(
         self, output: Union[torch.Tensor, np.ndarray], config: Dict[str, Any]
@@ -86,6 +100,14 @@ class DataLoader:
             return False
 
         return stage_order.index(stage) < stage_order.index(next_stage)
+
+    def has_input_for_next_stage(self) -> bool:
+        """Check if we have input data for the next stage to run."""
+        next_stage = self.get_next_stage()
+        if next_stage == "preprocessor":
+            return self.input_data is not None
+        else:
+            return self.get_input_for_stage(next_stage) is not None
 
     def save_json(self, filepath: Optional[str] = None) -> None:
         """Save all stored data to JSON."""
