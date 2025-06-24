@@ -31,6 +31,7 @@ exclude = '''
 /(
     .github
   | .vscode
+  | .venv
   | chatPose
   | configs
   | MaskAnyone

@@ -183,3 +183,5 @@ events.out*
 *.tar
 *.pkl
 MotionAgent/checkpoints
+
+*.mp4
