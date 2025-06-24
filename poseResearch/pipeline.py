@@ -57,24 +57,3 @@ class EstimationPipe:
 
             self.processed_batches += 1
             yield current_data
-
-    def create_videos_from_visualizations(self, cleanup_images: bool = True):
-        """Create MP4 videos using visualizer's built-in video creation"""
-        print("Creating videos from visualization images...")
-        all_created_videos = []
-
-        # Create videos for 2D visualizations
-        if self.visualizer_2d:
-            videos_2d = self.visualizer_2d.create_all_videos()
-            all_created_videos.extend(videos_2d)
-            if cleanup_images and videos_2d:
-                self.visualizer_2d.cleanup_images_after_video()
-
-        # Create videos for 3D visualizations
-        if self.visualizer_3d:
-            videos_3d = self.visualizer_3d.create_all_videos()
-            all_created_videos.extend(videos_3d)
-            if cleanup_images and videos_3d:
-                self.visualizer_3d.cleanup_images_after_video()
-
-        return all_created_videos
