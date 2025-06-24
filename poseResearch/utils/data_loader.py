@@ -34,6 +34,10 @@ class DataLoader:
             "config": config,
         }
 
+        # Auto-save if save_path is provided
+        if self.save_path:
+            self.save_json()
+
     def get_tensor(self, stage_name: str) -> Optional[torch.Tensor]:
         """Get data as PyTorch tensor from a specific stage."""
         if stage_name in self.data_store:
