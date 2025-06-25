@@ -5,7 +5,7 @@ from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from utils.data_loader import DataLoader
 from utils.visualizer import PoseVisualizer
-from typing import Optional, Tuple, List, Generator, Dict, Any
+from typing import Optional, Tuple, List
 
 
 class EstimationPipe:
