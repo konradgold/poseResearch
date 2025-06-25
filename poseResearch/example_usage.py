@@ -123,6 +123,6 @@ def example_4_individual_stage():
 
 if __name__ == "__main__":
     example_1_full_pipeline()
-    example_2_from_2d_poses()
-    example_3_manual_2d_input()
-    example_4_individual_stage()
+    # example_2_from_2d_poses()
+    # example_3_manual_2d_input()
+    # example_4_individual_stage()

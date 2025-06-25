@@ -1,4 +1,5 @@
 import torch
+from estimation.util import Estimation
 from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
@@ -17,7 +18,7 @@ class EstimationPipe:
         visualizer_2d: Optional[PoseVisualizer] = None,
         visualizer_3d: Optional[PoseVisualizer] = None,
     ) -> None:
-        self.pipe_classes: List[Tuple[str, Any]] = [
+        self.pipe_classes: List[Tuple[str, Estimation]] = [
             ("preprocessor", preprocessor),
             ("flatpose", flatpose),
             ("poselifting", poselifting),

@@ -50,7 +50,10 @@ class DataLoader:
 
         # Auto-save if save_path is provided
         if self.save_path:
-            self.save_json()
+            # Create stage-specific filename in dataloader folder
+            stage_filename = f"results_{stage_name}.json"
+            stage_path = self.save_path.parent / "dataloader" / stage_filename
+            self.save_json(stage_path)
 
     def get_tensor(self, stage_name: str) -> Optional[torch.Tensor]:
         """Get data as PyTorch tensor from a specific stage."""
