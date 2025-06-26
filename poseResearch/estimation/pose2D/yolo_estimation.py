@@ -8,6 +8,14 @@ class YOLOEstimation(TwoDPoseEstimation):
     YOLO estimation for 2D poses.
     """
 
+    @property
+    def config(self):
+        return {}
+
+    @property
+    def identifier(self):
+        return "YOLOEstimation"
+
     def __init__(self, model_path: str):
         super().__init__()
         self.model = YOLO(model_path)
@@ -42,5 +50,7 @@ class YOLOEstimation(TwoDPoseEstimation):
             kpts = r.keypoints.data  # (num_persons, Nk, D)
             num_persons = kpts.shape[0]
             if num_persons > 0:
-                output[:num_persons, t, :, :] = torch.from_numpy(kpts)
+                output[:num_persons, t, :, :] = kpts
+
+        print(f"Output: {output}")
         return output

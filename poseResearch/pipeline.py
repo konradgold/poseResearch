@@ -1,5 +1,4 @@
 import torch
-from estimation.util import Estimation
 from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation

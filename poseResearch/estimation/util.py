@@ -20,11 +20,11 @@ class Estimation(ABC):
 
     def forward(self, batch) -> torch.Tensor:
         output = self._forward(batch)
-        print("Forward of", self.identifier, "is done")
         if self.output_check(output):
+            print(f"Forward of {self.identifier} is done.")
             return output
         else:
-            raise RuntimeError(f"{self.identifier} did not return expected output")
+            raise RuntimeError(f"{self.identifier} did not return expected output.")
 
     @abstractmethod
     def output_check(self, output) -> bool:
