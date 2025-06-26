@@ -6,7 +6,6 @@ Temporary conversion script to convert pose JSON format to DataLoader format.
 import json
 import numpy as np
 from pathlib import Path
-from typing import Dict, Any, List
 
 
 def convert_pose_json_to_dataloader_format(
@@ -29,7 +28,7 @@ def convert_pose_json_to_dataloader_format(
     poses_3d = data.get("poses_3d", [])
     metadata = data.get("metadata", {})
 
-    print(f"Input data structure:")
+    print("Input data structure:")
     print(f"  poses_3d length: {len(poses_3d)}")
     if poses_3d:
         print(f"  First element length: {len(poses_3d[0])}")
