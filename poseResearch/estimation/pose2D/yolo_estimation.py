@@ -8,7 +8,7 @@ class YOLOEstimation(TwoDPoseEstimation):
     YOLO estimation for 2D poses.
     Available models:
     https://docs.ultralytics.com/de/models/
-    Example: yolo11s-pose.pt
+    Example: `yolo11s-pose.pt`
     """
 
     @property

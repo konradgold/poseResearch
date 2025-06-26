@@ -2,7 +2,6 @@ import cv2
 from cv2.typing import MatLike
 import json
 import torch
-from ultralytics import YOLO
 from pipeline import EstimationPipe
 from estimation.preprocess.yolo_preprocess import YOLOPreprocess
 from estimation.pose2D.yolo_estimation import YOLOEstimation
@@ -68,19 +67,6 @@ def video_to_tensor(video_path: str, num_frames: int):
     frames = resize_to_640_640(video_path, num_frames=num_frames)
     frames_tensor = torch.tensor(frames)
     return frames_tensor
-
-
-def tensor_to_json(tensor: torch.Tensor, filename: str):
-    """
-    Store a tensor to a json file.
-    Args:
-        tensor (torch.Tensor): Tensor to store.
-        filename (str): Path to the json file.
-    """
-    # Convert tensor to list (ensure it's on CPU and detached)
-    tensor_list = tensor.detach().cpu().tolist()
-    with open(filename, "w") as f:
-        json.dump(tensor_list, f)
 
 
 def test_yolo_pipeline_stages(video_path: str, model_name: str, num_frames: int = 5):
