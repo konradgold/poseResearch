@@ -10,7 +10,7 @@ Check whether all files are properly formatted:
 black . --check
 ```
 
-Run without the `--check` flag to format the files.
+> Tip: Run without the `--check` flag to format the files.
 
 If you add a directory to root that should not be formatted, add it to the exclude pattern in the [pyproject.toml](pyproject.toml).
 
@@ -21,5 +21,7 @@ Check whether any file needs linting:
 ```bash
 ruff check
 ```
+
+> Tip: Running with the `--fix` flag will fix some linting errors.
 
 If you add a directory to root that ruff should not be check, add it to the exclude pattern in the [pyproject.toml](pyproject.toml).

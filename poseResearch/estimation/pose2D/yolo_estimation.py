@@ -6,6 +6,9 @@ from ultralytics import YOLO
 class YOLOEstimation(TwoDPoseEstimation):
     """
     YOLO estimation for 2D poses.
+    Available models:
+    https://docs.ultralytics.com/de/models/
+    Example: yolo11s-pose.pt
     """
 
     @property
@@ -27,15 +30,16 @@ class YOLOEstimation(TwoDPoseEstimation):
         Returns:
             torch.Tensor: 2D poses of shape (P, T, Nk, D)
         """
-        # Ensure images are on CPU and in numpy format for YOLO
+        # Ensure images are on CPU for YOLO
         if images.is_cuda:
             images = images.cpu()
-        images_np = images.numpy()
-        T = images_np.shape[0]
-        # YOLO expects images as list of HWC numpy arrays
-        image_list = [images_np[t] for t in range(T)]
+
+        # See https://docs.ultralytics.com/modes/predict/#inference-sources for needed shape
+        # torch expects (T, C, H, W)
+        images_in_shape = images.permute(0, 3, 1, 2)
+        T = images_in_shape.shape[0]
         # Run inference
-        results = self.model(image_list)
+        results = self.model(images_in_shape)
         # Each result corresponds to one image
         # For each image, result.keypoints.data is (num_persons, num_keypoints, 3)
         # We want output shape (P, T, Nk, D) where D=3 (x, y, conf)
@@ -52,5 +56,4 @@ class YOLOEstimation(TwoDPoseEstimation):
             if num_persons > 0:
                 output[:num_persons, t, :, :] = kpts
 
-        print(f"Output: {output}")
         return output

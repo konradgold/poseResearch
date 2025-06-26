@@ -44,6 +44,11 @@ class TwoDPoseEstimation(Estimation):
             print(
                 f"Warning: {self.identifier} returned tensor with {Nk} keypoints and {D} dimensions. Expected {expected_Nk} keypoints and {expected_D} dimensions."
             )
+            if Nk == 0 and D == expected_Nk * expected_D:
+                print(
+                    f"Warning: {self.identifier} expected output tensor with {expected_Nk} keypoints and {expected_D} dimensions, but got {Nk} keypoints and {D} dimensions. This might occur when no person is detected."
+                )
+                return True
             return False
         if T < 1:
             print(f"Warning: {self.identifier} returned no frames.")
