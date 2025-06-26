@@ -104,6 +104,10 @@ class DataLoader:
             return "poselifting"
         elif self.has_stage("preprocessor"):
             return "flatpose"
+        elif self.has_stage("input"):
+            return "preprocessor"
+        elif self.has_stage("poselifting"):
+            return "future"
         return "preprocessor"
 
     def get_input_for_stage(self, stage: StageName) -> Optional[torch.Tensor]:

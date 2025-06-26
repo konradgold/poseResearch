@@ -86,15 +86,12 @@ def example_2_from_2d_poses():
     print(f"3D from stored 2D: {result.shape}")
 
 
-def example_3_manual_2d_input():
-    """Manually add 2D poses and run 3D lifting."""
-    print("\n=== Manual 2D Input ===")
+def example_3_from_3d_poses():
+    """Load 3D poses and auto-continue"""
+    print("\n=== 3D Poses Input ===")
 
     data_loader = DataLoader()
-
-    # Manually add 2D poses
-    poses_2d = torch.randn(3, 10, 17, 3)
-    data_loader.handle(poses_2d, {"stage_name": "flatpose"})
+    data_loader.load_json("dataloader/results_3d.json")
 
     # Pipeline auto-detects and starts from poselifting
     pipeline = EstimationPipe(
@@ -122,7 +119,7 @@ def example_4_individual_stage():
 
 
 if __name__ == "__main__":
-    example_1_full_pipeline()
+    # example_1_full_pipeline()
     # example_2_from_2d_poses()
-    # example_3_manual_2d_input()
+    example_3_from_3d_poses()
     # example_4_individual_stage()
