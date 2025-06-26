@@ -40,6 +40,8 @@ class YOLOEstimation(TwoDPoseEstimation):
         T = images_in_shape.shape[0]
         # Run inference
         results = self.model(images_in_shape)
+        # Add show=True, save=True to see and save the results
+
         # Each result corresponds to one image
         # For each image, result.keypoints.data is (num_persons, num_keypoints, 3)
         # We want output shape (P, T, Nk, D) where D=3 (x, y, conf)

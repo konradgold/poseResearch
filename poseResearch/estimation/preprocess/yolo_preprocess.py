@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import os
 import torch
+from typing import Optional
 
 
 class YOLOPreprocess(PreprocessEstimation):
@@ -14,7 +15,9 @@ class YOLOPreprocess(PreprocessEstimation):
     def identifier(self):
         return "YOLOPreprocess"
 
-    def _input_video_to_tensor(self, video_path: str, num_frames: int) -> torch.Tensor:
+    def _input_video_to_tensor(
+        self, video_path: str, num_frames: Optional[int]
+    ) -> torch.Tensor:
         """
         Args:
             video_path (str): Path to the video.
@@ -25,9 +28,9 @@ class YOLOPreprocess(PreprocessEstimation):
         cap = cv2.VideoCapture(video_path)
         frames = []
         count = 0
-        while count < num_frames:
+        while True:
             ret, frame = cap.read()
-            if not ret:
+            if not ret or num_frames is not None and count >= num_frames:
                 break
             # Resize frame to target size (width, height)
             frame = cv2.resize(frame, (640, 640))
@@ -44,7 +47,9 @@ class YOLOPreprocess(PreprocessEstimation):
         frames_tensor = torch.tensor(frames_np)
         return frames_tensor
 
-    def input_video_to_tensor(self, video_path: str, num_frames: int) -> torch.Tensor:
+    def input_video_to_tensor(
+        self, video_path: str, num_frames: Optional[int]
+    ) -> torch.Tensor:
         if not os.path.isfile(video_path):
             raise FileNotFoundError(f"Video file not found: {video_path}")
 

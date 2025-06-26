@@ -8,6 +8,7 @@ from estimation.preprocess.yolo_preprocess import YOLOPreprocess
 from estimation.pose2D.yolo_estimation import YOLOEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from utils.output_saver import OutputSaver
+from typing import Optional
 
 
 class Dummy3DPose(ThreeDPoseEstimation):
@@ -29,16 +30,16 @@ class DummyOutputSaver(OutputSaver):
         pass
 
 
-def resize_to_640_640(video_path: str, num_frames: int = 5) -> list[MatLike]:
+def resize_to_640_640(video_path: str, num_frames: Optional[int] = 5) -> list[MatLike]:
     """
     Resize a video to 640x640.
     """
     cap = cv2.VideoCapture(video_path)
     frames = []
     count = 0
-    while count < num_frames:
+    while True:
         ret, frame = cap.read()
-        if not ret:
+        if not ret or num_frames is not None and count >= num_frames:
             break
         # Resize frame to target size (width, height)
         frame = cv2.resize(frame, (640, 640))
@@ -54,7 +55,7 @@ def resize_to_640_640(video_path: str, num_frames: int = 5) -> list[MatLike]:
     return frames
 
 
-def video_to_tensor(video_path: str, num_frames: int = 5):
+def video_to_tensor(video_path: str, num_frames: int):
     """
     Convert a video to a tensor in BCHW format.
     Supported video formats: https://docs.ultralytics.com/de/modes/predict/#videos
@@ -105,16 +106,23 @@ def test_yolo_pipeline_stages(video_path: str, model_name: str, num_frames: int 
         json.dump(poses_3d.tolist(), f)
 
 
-def test_yolo_pipeline(video_path: str, model_name: str, num_frames: int = 5):
+def test_yolo_pipeline(
+    video_path: str,
+    model_name: str,
+    num_frames: Optional[int] = None,
+    batch_size: Optional[int] = None,
+):
     """
     Test EstimationPipe with NoPreprocess and YOLOEstimation.
     Args:
         video_path (str): Path to the video.
         num_frames (int): Number of frames to read from the video.
     """
+    if batch_size is None:
+        batch_size = 5
 
     class SimpleDataLoader:
-        def __init__(self, images_tensor: torch.Tensor, batch_size: int = 2):
+        def __init__(self, images_tensor: torch.Tensor, batch_size: int):
             self.images_tensor = images_tensor
             self.batch_size = batch_size
 
@@ -134,7 +142,7 @@ def test_yolo_pipeline(video_path: str, model_name: str, num_frames: int = 5):
         video_path, num_frames=num_frames
     )
 
-    dataloader = SimpleDataLoader(images_tensor, batch_size=5)
+    dataloader = SimpleDataLoader(images_tensor, batch_size=batch_size)
     pipeline = EstimationPipe(
         preprocessor=preprocessor,
         flatpose=YOLOEstimation(model_name),
