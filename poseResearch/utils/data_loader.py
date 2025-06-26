@@ -1,8 +1,11 @@
 import json
 import numpy as np
 import torch
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, Literal
 from pathlib import Path
+
+# Define the allowed stage names as a type
+StageName = Literal["input", "preprocessor", "flatpose", "poselifting"]
 
 
 class DataLoader:
@@ -12,20 +15,29 @@ class DataLoader:
     """
 
     def __init__(self, save_path: Optional[str] = None):
-        self.data_store: Dict[str, Any] = {}
+        self.data_store: Dict[StageName, Any] = {}
         self.save_path = Path(save_path) if save_path else None
-        self.input_data: Optional[torch.Tensor] = None
 
     def set_input(self, input_data: torch.Tensor) -> None:
         """Set the initial input data (e.g., raw video frames)."""
-        self.input_data = input_data
+        # Store input data in the same store as stage outputs
+        if isinstance(input_data, torch.Tensor):
+            data = input_data.detach().cpu().numpy()
+        else:
+            data = np.array(input_data)
+
+        self.data_store["input"] = {
+            "data": data.tolist(),
+            "shape": list(data.shape),
+            "config": {"stage_name": "input", "description": "Raw input data"},
+        }
 
     def get_current_input(self) -> Optional[torch.Tensor]:
         """Get the appropriate input data for the next stage to run."""
         next_stage = self.get_next_stage()
 
         if next_stage == "preprocessor":
-            return self.input_data
+            return self.get_tensor("input")
         else:
             return self.get_input_for_stage(next_stage)
 
@@ -33,7 +45,13 @@ class DataLoader:
         self, output: Union[torch.Tensor, np.ndarray], config: Dict[str, Any]
     ) -> None:
         """Store output from a pipeline stage."""
-        stage_name = config.get("stage_name", "unknown")
+        stage_name = config.get("stage_name")
+
+        # Validate stage_name
+        if stage_name not in ("preprocessor", "flatpose", "poselifting"):
+            raise ValueError(
+                f"Invalid stage_name: {stage_name}. Must be one of 'preprocessor', 'flatpose', 'poselifting'"
+            )
 
         # Convert tensor to numpy for JSON serialization
         if isinstance(output, torch.Tensor):
@@ -55,14 +73,14 @@ class DataLoader:
             stage_path = self.save_path.parent / "dataloader" / stage_filename
             self.save_json(stage_path)
 
-    def get_tensor(self, stage_name: str) -> Optional[torch.Tensor]:
+    def get_tensor(self, stage_name: StageName) -> Optional[torch.Tensor]:
         """Get data as PyTorch tensor from a specific stage."""
         if stage_name in self.data_store:
             data = np.array(self.data_store[stage_name]["data"])
             return torch.from_numpy(data)
         return None
 
-    def run_stage(self, estimation_module, input_stage_name: str) -> torch.Tensor:
+    def run_stage(self, estimation_module, input_stage_name: StageName) -> torch.Tensor:
         """Run a pipeline stage using stored data as input."""
         input_data = self.get_tensor(input_stage_name)
         if input_data is None:
@@ -80,7 +98,7 @@ class DataLoader:
 
         return output
 
-    def get_next_stage(self) -> str:
+    def get_next_stage(self) -> StageName:
         """Determine the next stage to run based on available data."""
         if self.has_stage("flatpose"):
             return "poselifting"
@@ -88,13 +106,13 @@ class DataLoader:
             return "flatpose"
         return "preprocessor"
 
-    def get_input_for_stage(self, stage: str) -> Optional[torch.Tensor]:
+    def get_input_for_stage(self, stage: StageName) -> Optional[torch.Tensor]:
         """Get the appropriate input data for a given stage."""
         input_stages = {"flatpose": "preprocessor", "poselifting": "flatpose"}
         input_stage = input_stages.get(stage)
         return self.get_tensor(input_stage) if input_stage else None
 
-    def should_skip_stage(self, stage: str) -> bool:
+    def should_skip_stage(self, stage: StageName) -> bool:
         """Check if a stage should be skipped based on available data."""
         next_stage = self.get_next_stage()
         stage_order = ["preprocessor", "flatpose", "poselifting"]
@@ -108,7 +126,7 @@ class DataLoader:
         """Check if we have input data for the next stage to run."""
         next_stage = self.get_next_stage()
         if next_stage == "preprocessor":
-            return self.input_data is not None
+            return "input" in self.data_store
         else:
             return self.get_input_for_stage(next_stage) is not None
 
@@ -128,6 +146,6 @@ class DataLoader:
         with open(filepath, "r") as f:
             self.data_store = json.load(f)
 
-    def has_stage(self, stage_name: str) -> bool:
+    def has_stage(self, stage_name: StageName) -> bool:
         """Check if stage data exists."""
         return stage_name in self.data_store
