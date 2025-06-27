@@ -50,7 +50,6 @@ class Dummy3DPose(ThreeDPoseEstimation):
         return "poselifting"
 
     def _forward(self, poses_2d):
-        # return poses_2d + torch.randn_like(poses_2d) * 0.1
         return poses_2d
 
 
