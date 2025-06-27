@@ -211,7 +211,8 @@ class DataLoader:
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
         if stage_name:
-            data_to_save = self.data_store[stage_name]
+            # Wrap the stage data with the stage name as key to maintain consistent structure
+            data_to_save = {stage_name: self.data_store[stage_name]}
         else:
             data_to_save = self.data_store
 
