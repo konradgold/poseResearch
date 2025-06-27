@@ -188,4 +188,4 @@ MotionAgent/checkpoints
 *.png
 
 # Temporary conversion scripts and data
-poseResearch/utils/temp_converters
+poseResearch/utils/temp_convert
