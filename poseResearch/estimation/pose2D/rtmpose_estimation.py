@@ -7,6 +7,7 @@ from mmdeploy_runtime import PoseDetector
 
 class RTMPoseEstimation(TwoDPoseEstimation):
     """
+    WORK IN PROGRESS. DO NOT USE.
     RTMPose estimation for 2D poses.
     Available models:
     https://github.com/open-mmlab/mmpose/tree/main/projects/rtmpose#-model-zoo-

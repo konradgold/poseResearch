@@ -4,8 +4,6 @@ black==25.1.0
     # via poseresearch (pyproject.toml)
 accelerate==1.7.0
     # via peft
-alphapose==1.1
-    # via poseresearch (pyproject.toml)
 annotated-types==0.7.0
     # via pydantic
 anyio==4.9.0

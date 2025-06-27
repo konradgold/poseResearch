@@ -7,7 +7,7 @@ class TwoDPoseEstimation(Estimation):
     """
     Abstract base class for 2D pose estimation.
     Input: images as a tensor of shape (T, H, W, C)
-    Output: 2D poses as a tensor of shape (P, T, Nk, D)
+    Output: 2D poses as a tensor of shape (P, T, Nk, D) in the COCO format.
     """
 
     def __init__(self):

@@ -5,6 +5,7 @@ from alphapose.models import builder
 
 class AlphaPoseEstimation(TwoDPoseEstimation):
     """
+    WORK IN PROGRESS. DO NOT USE.
     AlphaPose estimation for 2D poses. More info: https://pypi.org/project/alphapipe/
     Available models:
     https://github.com/MVIG-SJTU/AlphaPose/blob/master/docs/MODEL_ZOO.md

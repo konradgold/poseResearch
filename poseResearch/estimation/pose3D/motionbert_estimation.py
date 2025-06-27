@@ -4,6 +4,7 @@ from .pose_estimation_3D import ThreeDPoseEstimation
 
 class MotionBERTEstimation(ThreeDPoseEstimation):
     """
+    WORK IN PROGRESS. DO NOT USE.
     Abstract base class for 3D pose estimation.
     Input: 2D poses as a tensor of shape (P, T, Nk, D)
     Output: (to be defined by subclasses)

@@ -7,6 +7,7 @@ from mediapipe.tasks.python import vision
 
 class MediaPipeEstimation(TwoDPoseEstimation):
     """
+    WORK IN PROGRESS. DO NOT USE.
     Mediapipe estimation for 2D poses. More info: https://pypi.org/project/mediapipe/
     Available models:
     https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker#models
