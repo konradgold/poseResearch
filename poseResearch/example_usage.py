@@ -7,15 +7,14 @@ import torch
 from utils.data_loader import DataLoader
 from pipeline import EstimationPipe
 from estimation.preprocess.preprocess_estimation import PreprocessEstimation
+from estimation.preprocess.no_preprocess import NoPreprocess
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
+from estimation.pose2D.yolo_estimation import YOLOEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 
 
 # Minimal dummy estimators
 class DummyPreprocessor(PreprocessEstimation):
-    def _forward(self, data):
-        return torch.randn(data.size(0), 224, 224, 3)
-
     @property
     def config(self):
         return {}
@@ -24,11 +23,11 @@ class DummyPreprocessor(PreprocessEstimation):
     def identifier(self):
         return "preprocessor"
 
+    def _forward(self, data):
+        return torch.randn(data.size(0), 224, 224, 3)
+
 
 class Dummy2DPose(TwoDPoseEstimation):
-    def _forward(self, images):
-        return torch.randn(2, images.size(0), 17, 3)
-
     @property
     def config(self):
         return {}
@@ -37,11 +36,11 @@ class Dummy2DPose(TwoDPoseEstimation):
     def identifier(self):
         return "flatpose"
 
+    def _forward(self, images):
+        return torch.randn(2, images.size(0), 17, 3)
+
 
 class Dummy3DPose(ThreeDPoseEstimation):
-    def _forward(self, poses_2d):
-        return poses_2d + torch.randn_like(poses_2d) * 0.1
-
     @property
     def config(self):
         return {}
@@ -49,6 +48,9 @@ class Dummy3DPose(ThreeDPoseEstimation):
     @property
     def identifier(self):
         return "poselifting"
+
+    def _forward(self, poses_2d):
+        return poses_2d
 
 
 def example_1_full_pipeline():
@@ -118,8 +120,26 @@ def example_4_individual_stage():
     print(f"Direct stage result: {result.shape}")
 
 
+def example_5_from_video():
+    """Load video and run pipeline."""
+    print("\n=== Video Input ===")
+
+    data_loader = DataLoader(save_path="results-from-video.json")
+    data_loader.set_input_from_video("fem1_t1_preview.mp4", num_frames=20)
+
+    print("Data loading complete.")
+
+    pipeline = EstimationPipe(
+        NoPreprocess(), YOLOEstimation("yolo11s-pose.pt"), Dummy3DPose(), data_loader
+    )
+
+    result = pipeline.forward()
+    print(f"Video result: {result.shape}")
+
+
 if __name__ == "__main__":
     # example_1_full_pipeline()
     # example_2_from_2d_poses()
-    example_3_from_3d_poses()
+    # example_3_from_3d_poses()
     # example_4_individual_stage()
+    example_5_from_video()

@@ -6,6 +6,7 @@ from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from utils.data_loader import DataLoader
 from utils.visualizer import PoseVisualizer
 from typing import Optional, Tuple, List
+from utils.data_loader import StageName
 
 
 class EstimationPipe:
@@ -18,7 +19,7 @@ class EstimationPipe:
         visualizer_2d: Optional[PoseVisualizer] = None,
         visualizer_3d: Optional[PoseVisualizer] = None,
     ) -> None:
-        self.pipe_classes: List[Tuple[str, Estimation]] = [
+        self.pipe_classes: List[Tuple[StageName, Estimation]] = [
             ("preprocessor", preprocessor),
             ("flatpose", flatpose),
             ("poselifting", poselifting),

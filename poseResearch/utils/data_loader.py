@@ -1,5 +1,8 @@
+import cv2
+from cv2.typing import MatLike
 import json
 import numpy as np
+import os
 import torch
 from typing import Dict, Any, Optional, Union, Literal
 from pathlib import Path
@@ -31,6 +34,59 @@ class DataLoader:
             "shape": list(data.shape),
             "config": {"stage_name": "input", "description": "Raw input data"},
         }
+
+    def video_to_tensor(
+        self, video_path: str, num_frames: Optional[int] = None
+    ) -> torch.Tensor:
+        """Convert a video to a tensor in BCHW format, using batches for memory efficiency."""
+        cap = cv2.VideoCapture(video_path)
+        print(f"Read video from {video_path}")
+        frames: list[MatLike] = []
+        count = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret or num_frames is not None and count >= num_frames:
+                break
+            frame = cv2.resize(frame, (640, 640))
+            # Convert BGR (OpenCV) to RGB
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Convert to float32 and normalize to [0, 1]
+            frame = frame.astype("float32") / 255.0
+            frames.append(frame)
+            count += 1
+        cap.release()
+        if len(frames) == 0:
+            raise ValueError("No frames read from video.")
+        frames_np = np.array(frames)
+        frames_tensor = torch.tensor(frames_np)
+        print(f"Read {frames_tensor.shape[0]} frames")
+        return frames_tensor
+
+    def set_input_from_video(
+        self, video_path: str, num_frames: Optional[int] = None
+    ) -> None:
+        """Set the input data from a video file."""
+        # Check whether video exists
+        if not Path(video_path).exists():
+            raise FileNotFoundError(f"Video file not found: {video_path}")
+
+        valid_extensions = {
+            ".mp4",
+            ".avi",
+            ".mov",
+            ".mkv",
+            ".flv",
+            ".wmv",
+            ".mpeg",
+            ".mpg",
+        }
+        _, ext = os.path.splitext(video_path)
+        if ext.lower() not in valid_extensions:
+            raise ValueError(
+                f"File {video_path} does not have a valid video extension: {ext}"
+            )
+        video_frames = self.video_to_tensor(video_path, num_frames)
+        self.set_input(video_frames)
 
     def get_current_input(self) -> Optional[torch.Tensor]:
         """Get the appropriate input data for the next stage to run."""
@@ -71,7 +127,7 @@ class DataLoader:
             # Create stage-specific filename in dataloader folder
             stage_filename = f"results_{stage_name}.json"
             stage_path = self.save_path.parent / "dataloader" / stage_filename
-            self.save_json(stage_path)
+            self.save_json(str(stage_path), stage_name)
 
     def get_tensor(self, stage_name: StageName) -> Optional[torch.Tensor]:
         """Get data as PyTorch tensor from a specific stage."""
@@ -112,13 +168,15 @@ class DataLoader:
 
     def get_input_for_stage(self, stage: StageName) -> Optional[torch.Tensor]:
         """Get the appropriate input data for a given stage."""
-        input_stages = {
+        input_stages: dict[StageName, StageName] = {
             "flatpose": "preprocessor",
             "poselifting": "flatpose",
             "future": "poselifting",
         }
-        input_stage = input_stages.get(stage)
-        return self.get_tensor(input_stage) if input_stage else None
+        input_stage: Optional[StageName] = input_stages.get(stage)
+        if input_stage is None:
+            raise ValueError(f"No input stage found for stage: {stage}")
+        return self.get_tensor(input_stage)
 
     def should_skip_stage(self, stage: StageName) -> bool:
         """Check if a stage should be skipped based on available data."""
@@ -138,16 +196,27 @@ class DataLoader:
         else:
             return self.get_input_for_stage(next_stage) is not None
 
-    def save_json(self, filepath: Optional[str] = None) -> None:
-        """Save all stored data to JSON."""
+    def save_json(
+        self, filepath: Optional[str] = None, stage_name: Optional[StageName] = None
+    ) -> None:
+        """Save all stored data to JSON.
+        If stage_name is provided, save only the data for that stage.
+        """
+        if stage_name == "preprocessor":
+            return
         save_path = Path(filepath) if filepath else self.save_path
         if save_path is None:
             raise ValueError("No save path provided")
 
         save_path.parent.mkdir(parents=True, exist_ok=True)
 
+        if stage_name:
+            data_to_save = self.data_store[stage_name]
+        else:
+            data_to_save = self.data_store
+
         with open(save_path, "w") as f:
-            json.dump(self.data_store, f, indent=2)
+            json.dump(data_to_save, f, indent=2)
 
     def load_json(self, filepath: str) -> None:
         """Load data from JSON."""

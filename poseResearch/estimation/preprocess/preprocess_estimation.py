@@ -29,13 +29,23 @@ class PreprocessEstimation(Estimation):
         Returns True if valid, False otherwise.
         """
         if not isinstance(output, torch.Tensor):
+            print(f"{self.identifier} output is not a tensor.")
             return False
         if output.ndim != 4:
+            print(
+                f"{self.identifier} output has wrong number of dimensions. Expected 4, got {output.ndim} with shape {output.shape}."
+            )
             return False
         T, H, W, C = output.shape
         expected_C = getattr(self, "num_channels", 3)
         if C != expected_C:
+            print(
+                f"{self.identifier} output has wrong number of channels. Expected {expected_C}, got {C}."
+            )
             return False
         if T < 1 or H < 1 or W < 1:
+            print(
+                f"{self.identifier} output has wrong shape. Expected (T, H, W, C), got {output.shape}."
+            )
             return False
         return True
