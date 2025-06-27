@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, Union, Literal
 from pathlib import Path
 
 # Define the allowed stage names as a type
-StageName = Literal["input", "preprocessor", "flatpose", "poselifting"]
+StageName = Literal["input", "preprocessor", "flatpose", "poselifting", "future"]
 
 
 class DataLoader:
