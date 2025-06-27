@@ -112,14 +112,18 @@ class DataLoader:
 
     def get_input_for_stage(self, stage: StageName) -> Optional[torch.Tensor]:
         """Get the appropriate input data for a given stage."""
-        input_stages = {"flatpose": "preprocessor", "poselifting": "flatpose"}
+        input_stages = {
+            "flatpose": "preprocessor",
+            "poselifting": "flatpose",
+            "future": "poselifting",
+        }
         input_stage = input_stages.get(stage)
         return self.get_tensor(input_stage) if input_stage else None
 
     def should_skip_stage(self, stage: StageName) -> bool:
         """Check if a stage should be skipped based on available data."""
         next_stage = self.get_next_stage()
-        stage_order = ["preprocessor", "flatpose", "poselifting"]
+        stage_order = ["preprocessor", "flatpose", "poselifting", "future"]
 
         if stage not in stage_order or next_stage not in stage_order:
             return False
