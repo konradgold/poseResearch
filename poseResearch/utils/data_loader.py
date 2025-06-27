@@ -2,6 +2,7 @@ import cv2
 from cv2.typing import MatLike
 import json
 import numpy as np
+import os
 import torch
 from typing import Dict, Any, Optional, Union, Literal
 from pathlib import Path
@@ -68,6 +69,22 @@ class DataLoader:
         # Check whether video exists
         if not Path(video_path).exists():
             raise FileNotFoundError(f"Video file not found: {video_path}")
+
+        valid_extensions = {
+            ".mp4",
+            ".avi",
+            ".mov",
+            ".mkv",
+            ".flv",
+            ".wmv",
+            ".mpeg",
+            ".mpg",
+        }
+        _, ext = os.path.splitext(video_path)
+        if ext.lower() not in valid_extensions:
+            raise ValueError(
+                f"File {video_path} does not have a valid video extension: {ext}"
+            )
         video_frames = self.video_to_tensor(video_path, num_frames)
         self.set_input(video_frames)
 
@@ -151,13 +168,15 @@ class DataLoader:
 
     def get_input_for_stage(self, stage: StageName) -> Optional[torch.Tensor]:
         """Get the appropriate input data for a given stage."""
-        input_stages = {
+        input_stages: dict[StageName, StageName] = {
             "flatpose": "preprocessor",
             "poselifting": "flatpose",
             "future": "poselifting",
         }
-        input_stage = input_stages.get(stage)
-        return self.get_tensor(input_stage) if input_stage else None
+        input_stage: Optional[StageName] = input_stages.get(stage)
+        if input_stage is None:
+            raise ValueError(f"No input stage found for stage: {stage}")
+        return self.get_tensor(input_stage)
 
     def should_skip_stage(self, stage: StageName) -> bool:
         """Check if a stage should be skipped based on available data."""
