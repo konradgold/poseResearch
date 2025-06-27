@@ -186,3 +186,6 @@ MotionAgent/checkpoints
 
 *.mp4
 *.png
+
+# Temporary conversion scripts and data
+poseResearch/utils/temp_converters
