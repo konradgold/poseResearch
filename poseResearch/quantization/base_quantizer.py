@@ -6,7 +6,7 @@ from torch.optim import Optimizer
 import torch
 
 class VQVAEBase(torch.nn.Module, ABC):
-
+    
     @abstractmethod
     def forward(self, x: torch.Tensor) -> Dict[str, Any]:
         """
