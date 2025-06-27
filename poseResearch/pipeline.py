@@ -1,10 +1,12 @@
 import torch
+from estimation.util import Estimation
 from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
-from utils.output_saver import OutputSaver
+from utils.data_loader import DataLoader
 from utils.visualizer import PoseVisualizer
-from typing import Optional
+from typing import Optional, Tuple, List
+from utils.data_loader import StageName
 
 
 class EstimationPipe:
@@ -13,70 +15,60 @@ class EstimationPipe:
         preprocessor: PreprocessEstimation,
         flatpose: TwoDPoseEstimation,
         poselifting: ThreeDPoseEstimation,
-        output_saver: OutputSaver,
+        data_loader: DataLoader,
         visualizer_2d: Optional[PoseVisualizer] = None,
         visualizer_3d: Optional[PoseVisualizer] = None,
-    ):
-        self.pipe_classes = [
+    ) -> None:
+        self.pipe_classes: List[Tuple[StageName, Estimation]] = [
             ("preprocessor", preprocessor),
             ("flatpose", flatpose),
             ("poselifting", poselifting),
         ]
-        self.output_saver = output_saver
-        self.visualizer_2d = visualizer_2d
-        self.visualizer_3d = visualizer_3d
-        self.processed_batches = 0
+        self.data_loader: DataLoader = data_loader
+        self.visualizer_2d: Optional[PoseVisualizer] = visualizer_2d
+        self.visualizer_3d: Optional[PoseVisualizer] = visualizer_3d
+        self.processed_batches: int = 0
 
-    def forward(self, dataloader):
-        for batch_idx, batch in enumerate(dataloader):
-            current_data = batch
-            batch_info = {"batch_idx": batch_idx, "original_batch_size": batch.size(0)}
+    def forward(self) -> torch.Tensor:
+        # Get input data from dataloader
+        current_data = self.data_loader.get_current_input()
+        if current_data is None:
+            raise ValueError(
+                "No input data available. Use data_loader.set_input() or load data."
+            )
 
-            # Process through each stage
-            for stage_name, module in self.pipe_classes:
-                current_data = module.forward(current_data)
-                self.output_saver.handle(current_data, module.config)
+        batch_info = {"original_batch_size": current_data.size(0)}
 
-                # Use separate visualizers for different stages
-                if stage_name == "flatpose" and self.visualizer_2d:
-                    if self.visualizer_2d.should_visualize(stage_name, batch_idx):
-                        self.visualizer_2d.visualize_2d_poses(
-                            current_data, batch_info, stage_name
-                        )
+        # Process through stages using dataloader logic
+        for stage_name, module in self.pipe_classes:
+            if self.data_loader.should_skip_stage(stage_name):
+                continue
 
-                elif stage_name == "poselifting" and self.visualizer_3d:
-                    if self.visualizer_3d.should_visualize(stage_name, batch_idx):
-                        self.visualizer_3d.visualize_3d_poses(
-                            current_data, batch_info, stage_name
-                        )
+            current_data = module.forward(current_data)
 
-            # Final output validation
-            assert isinstance(current_data, torch.Tensor)
-            # shape (#persons in batch, #frames, 17, 3)
-            # assert current_data.size(0) == batch.size(0)
-            # assert current_data.size(2) == 17
-            # assert current_data.size(3) == 3
+            # Store intermediate results in dataloader
+            stage_config = {
+                "stage_name": stage_name,
+                **getattr(module, "config", {}),
+            }
+            self.data_loader.handle(current_data, stage_config)
 
-            self.processed_batches += 1
-            yield current_data
+            # Use separate visualizers for different stages
+            if stage_name == "flatpose" and self.visualizer_2d:
+                self.visualizer_2d.visualize_2d_poses(
+                    current_data, batch_info, stage_name
+                )
 
-    def create_videos_from_visualizations(self, cleanup_images: bool = True):
-        """Create MP4 videos using visualizer's built-in video creation"""
-        print("Creating videos from visualization images...")
-        all_created_videos = []
+            elif stage_name == "poselifting" and self.visualizer_3d:
+                self.visualizer_3d.visualize_3d_poses(
+                    current_data, batch_info, stage_name
+                )
 
-        # Create videos for 2D visualizations
-        if self.visualizer_2d:
-            videos_2d = self.visualizer_2d.create_all_videos()
-            all_created_videos.extend(videos_2d)
-            if cleanup_images and videos_2d:
-                self.visualizer_2d.cleanup_images_after_video()
+        # Final output validation
+        assert isinstance(current_data, torch.Tensor)
+        if len(current_data.shape) == 4:
+            assert current_data.size(2) == 17
+            assert current_data.size(3) == 3
 
-        # Create videos for 3D visualizations
-        if self.visualizer_3d:
-            videos_3d = self.visualizer_3d.create_all_videos()
-            all_created_videos.extend(videos_3d)
-            if cleanup_images and videos_3d:
-                self.visualizer_3d.cleanup_images_after_video()
-
-        return all_created_videos
+        self.processed_batches += 1
+        return current_data

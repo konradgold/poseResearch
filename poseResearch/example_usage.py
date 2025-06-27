@@ -1,52 +1,125 @@
 #!/usr/bin/env python3
 """
-Simple example usage of pose visualization with video creation
+Lean example: DataLoader manages all input data, pipeline just runs stages.
 """
 
 import torch
-import numpy as np
-import json
-from visualizer.pose_3d_visualizer import Pose3DVisualizer
+from utils.data_loader import DataLoader
+from pipeline import EstimationPipe
+from estimation.preprocess.preprocess_estimation import PreprocessEstimation
+from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
+from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 
 
-def main():
-    try:
-        with open("results_interactive4_t3-cam16_anatomical.json", "r") as f:
-            data = json.load(f)
+# Minimal dummy estimators
+class DummyPreprocessor(PreprocessEstimation):
+    def _forward(self, data):
+        return torch.randn(data.size(0), 224, 224, 3)
 
-        poses_list = data["poses_3d"]
-        metadata = data["metadata"]
+    @property
+    def config(self):
+        return {}
 
-        print(
-            f"✅ Loaded {metadata['num_people']} people, {metadata['num_frames']} frames"
-        )
+    @property
+    def identifier(self):
+        return "preprocessor"
 
-        # Convert to tensor
-        poses = torch.from_numpy(np.array(poses_list)).float()
 
-        # Create visualizer with video enabled
-        visualizer = Pose3DVisualizer(
-            skeleton_type="anatomical",
-            output_dir="./pose_video_output",
-            create_videos=True,
-            video_fps=30,
-        )
+class Dummy2DPose(TwoDPoseEstimation):
+    def _forward(self, images):
+        return torch.randn(2, images.size(0), 17, 3)
 
-        # Generate all frames and create video in one call
-        created_videos = visualizer.visualize_all_frames(
-            poses, "h36m_poses", "pose_data"
-        )
+    @property
+    def config(self):
+        return {}
 
-        if created_videos:
-            print(f"Success! Video created: {created_videos[0]}")
-        else:
-            print("Failed to create video")
+    @property
+    def identifier(self):
+        return "flatpose"
 
-    except FileNotFoundError:
-        print("❌ Pose data file not found")
-    except Exception as e:
-        print(f"❌ Error: {e}")
+
+class Dummy3DPose(ThreeDPoseEstimation):
+    def _forward(self, poses_2d):
+        return poses_2d + torch.randn_like(poses_2d) * 0.1
+
+    @property
+    def config(self):
+        return {}
+
+    @property
+    def identifier(self):
+        return "poselifting"
+
+
+def example_1_full_pipeline():
+    """Full pipeline from raw frames."""
+    print("=== Full Pipeline ===")
+
+    data_loader = DataLoader(save_path="results.json")
+    pipeline = EstimationPipe(
+        DummyPreprocessor(), Dummy2DPose(), Dummy3DPose(), data_loader
+    )
+
+    # Set input data in dataloader
+    raw_frames = torch.randn(5, 480, 640, 3)
+    data_loader.set_input(raw_frames)
+
+    # Run pipeline - no parameters needed!
+    result = pipeline.forward()
+    print(f"Final result: {result.shape}")
+
+
+def example_2_from_2d_poses():
+    """Load 2D poses and auto-continue from 3D lifting."""
+    print("\n=== Auto-start from 2D Poses ===")
+
+    data_loader = DataLoader()
+    data_loader.load_json("results.json")  # Has 2D poses
+
+    # Pipeline auto-detects and starts from poselifting
+    pipeline = EstimationPipe(
+        DummyPreprocessor(), Dummy2DPose(), Dummy3DPose(), data_loader
+    )
+
+    # No input needed - uses stored 2D poses
+    result = pipeline.forward()
+    print(f"3D from stored 2D: {result.shape}")
+
+
+def example_3_from_3d_poses():
+    """Load 3D poses and auto-continue"""
+    print("\n=== 3D Poses Input ===")
+
+    data_loader = DataLoader()
+    data_loader.load_json("dataloader/results_3d.json")
+
+    # Pipeline auto-detects and starts from poselifting
+    pipeline = EstimationPipe(
+        DummyPreprocessor(), Dummy2DPose(), Dummy3DPose(), data_loader
+    )
+
+    result = pipeline.forward()
+    print(f"3D from manual 2D: {result.shape}")
+
+
+def example_4_individual_stage():
+    """Use dataloader's run_stage method directly."""
+    print("\n=== Individual Stage Usage ===")
+
+    data_loader = DataLoader()
+
+    # Add 2D poses
+    poses_2d = torch.randn(2, 8, 17, 3)
+    data_loader.handle(poses_2d, {"stage_name": "flatpose"})
+
+    # Run only 3D lifting stage
+    pose_3d_model = Dummy3DPose()
+    result = data_loader.run_stage(pose_3d_model, "flatpose")
+    print(f"Direct stage result: {result.shape}")
 
 
 if __name__ == "__main__":
-    main()
+    # example_1_full_pipeline()
+    # example_2_from_2d_poses()
+    example_3_from_3d_poses()
+    # example_4_individual_stage()
