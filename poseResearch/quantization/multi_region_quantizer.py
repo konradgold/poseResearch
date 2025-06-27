@@ -98,6 +98,7 @@ class MultiRegionQuantizer(VQVAEBase):
 
         self.region_size = self.dim_bottleneck // self.nregions
         self.encoder = torch.nn.Sequential(
+            # Perhaps without token classifier and embedding. Semantic closeness is given anyway.
             TokenClassifier(in_channels=3, num_classes=self.nbooks*self.region_size),
             torch.nn.Embedding(self.nbooks*self.region_size, self.emb_dim),
             PositionalEncoding(self.emb_dim, dropout=0.1, max_len=self.sequence_length),
