@@ -1,7 +1,8 @@
 import math
-from typing import Any
+from typing import Any, List
 
 import torch
+from transformers import AutoProcessor
 from yaml import Token
 from poseResearch.quantization.base_quantizer import VQVAEBase
 
@@ -217,3 +218,39 @@ class MultiRegionQuantizer(VQVAEBase):
             'recon_loss': recon_loss.item(),
             'z_e': output['z_e'],
         }
+    
+
+class FASTQuantizer(VQVAEBase):
+    def __init__(self, pretrained: str = "physical-intelligence/fast", *args: Any, **kwds: Any) -> None:
+        self.tokenizer = AutoProcessor.from_pretrained(pretrained, trust_remote_code=True)
+    
+    def fit_tokenizer(self, data: torch.Tensor) -> None:
+        data = self._preprocess_input(data)
+        self.tokenizer.fit(data)
+
+    def _preprocess_input(self, input_tensor: torch.Tensor) -> torch.Tensor:
+        """
+        Preprocesses the input tensor to match the expected input format of the tokenizer.
+        """
+        # Permute and flatten the input tensor
+        inputs = input_tensor.permute(0, 2, 1).flatten(start_dim=1)
+        x_min = inputs.amin(dim=(1, 2), keepdim=True)
+        x_max = inputs.amax(dim=(1, 2), keepdim=True)
+        # Avoid division by zero
+        scale = (x_max - x_min).clamp(min=1e-8)
+        inputs = 2 * (inputs - x_min) / scale - 1
+        return inputs
+
+    def quantize(self, input_tensor: torch.Tensor) -> torch.Tensor:
+        """
+        Quantizes the input text using the fitted tokenizer.
+        """
+        inputs = self._preprocess_input(input_tensor)
+        return self.tokenizer(inputs, return_tensors="pt").input_ids
+    
+    def decode(self, input_ids: torch.Tensor) -> torch.Tensor:
+        """
+        Decodes the input_ids back to the original text.
+        """
+        decoded = self.tokenizer.decode(input_ids, skip_special_tokens=True)
+        return decoded
