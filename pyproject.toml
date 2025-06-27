@@ -31,6 +31,7 @@ exclude = '''
 /(
     .github
   | .vscode
+  | .venv
   | chatPose
   | configs
   | MaskAnyone
@@ -65,4 +66,4 @@ exclude = [
     "pose_estimation",
     "PoseGPT",
 ]
-extend-ignore = ["F403", "F405"]
+lint.extend-ignore = ["F403", "F405"]
