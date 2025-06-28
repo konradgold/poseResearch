@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import cv2
 from typing import Any, List, Tuple, Union
-from MotionBERT.lib.model.loss import *
+from MotionBERT.lib.model.loss import nn
 from MotionBERT.lib.utils.learning import load_backbone
 from MotionBERT.lib.utils.tools import get_config
 from ultralytics import YOLO

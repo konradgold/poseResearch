@@ -43,8 +43,6 @@ exclude = '''
 )/
 '''
 skip-string-normalization = false
-# Additional customization options:
-# - skip-magic-trailing-comma = false  # Keep trailing commas in multiline structures
 
 [tool.ruff]
 line-length = 88
@@ -65,5 +63,5 @@ exclude = [
     "MotionBERT",
     "pose_estimation",
     "PoseGPT",
+    "train_custom.py",
 ]
-lint.extend-ignore = ["F403", "F405"]
