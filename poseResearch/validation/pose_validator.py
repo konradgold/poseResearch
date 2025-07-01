@@ -2,7 +2,6 @@ from typing import List, Optional, Tuple
 import numpy as np
 import cv2
 import torch
-from sklearn.metrics.pairwise import cosine_similarity
 from scipy.optimize import linear_sum_assignment
 
 import sys
@@ -14,7 +13,7 @@ from utils.data_loader import DataLoader, StageName
 
 class PoseValidator:
     """
-    Simple pose validator that computes similarity between 3D poses and 2D ground truth poses.
+    Simple pose validator that computes MPJPE between 3D poses and 2D ground truth poses.
     Accepts two DataLoaders: one for ground truth 2D poses and one for 3D poses.
     """
 
@@ -47,6 +46,63 @@ class PoseValidator:
         # No distortion
         self.dist_coeffs = np.zeros((4, 1))
 
+    def project_to_plane(
+        self, predicted_3d: np.ndarray, target_2d: np.ndarray
+    ) -> np.ndarray:
+        """
+        Project 3D poses to 2D plane using PnP algorithm, similar to torch_project_to_plane.
+
+        Args:
+            predicted_3d: 3D poses of shape (num_poses, num_keypoints, 3)
+            target_2d: 2D target poses of shape (num_poses, num_keypoints, 2)
+
+        Returns:
+            Projected 2D points of shape (num_poses, num_keypoints, 2)
+        """
+        assert len(predicted_3d.shape) == 3
+        assert len(target_2d.shape) == 3
+
+        assert predicted_3d.shape[0] == target_2d.shape[0]
+        assert predicted_3d.shape[1] == target_2d.shape[1]
+        assert predicted_3d.shape[2] == target_2d.shape[2] + 1
+
+        out = np.zeros(target_2d.shape)
+
+        for i, keypoints_3d in enumerate(predicted_3d):
+            # Ensure correct dtype/shape
+            keypoints_3d_np = keypoints_3d.astype(np.float64)
+            target_np = target_2d[i].astype(np.float64)
+
+            try:
+                success, rvec, tvec, inliers = cv2.solvePnPRansac(
+                    keypoints_3d_np, target_np, self.camera_matrix, self.dist_coeffs
+                )
+
+                if not success:
+                    continue  # Skip this pair if PnP fails
+
+                projected_points, _ = cv2.projectPoints(
+                    keypoints_3d_np, rvec, tvec, self.camera_matrix, self.dist_coeffs
+                )
+
+                out[i] = projected_points.reshape(-1, 2)
+
+            except Exception:
+                continue  # Skip this pair if projection fails
+
+        return out
+
+    def mpjpe(self, predicted_3d: np.ndarray, target_2d: np.ndarray) -> float:
+        """
+        Mean per-joint position error (i.e. mean Euclidean distance),
+        following the same approach as the marked loss_mpjpe function.
+        """
+        predicted_2d = self.project_to_plane(predicted_3d, target_2d)
+        assert predicted_2d.shape == target_2d.shape
+        return np.mean(
+            np.linalg.norm(predicted_2d - target_2d, axis=len(target_2d.shape) - 1)
+        )
+
     def validate(
         self,
         gt_data_loader: DataLoader,
@@ -55,7 +111,7 @@ class PoseValidator:
         poses_3d_stage: StageName = "poselifting",
     ) -> float:
         """
-        Validate 3D poses against 2D ground truth poses from DataLoaders.
+        Validate 3D poses against 2D ground truth poses from DataLoaders using MPJPE.
 
         Args:
             gt_data_loader: DataLoader containing ground truth 2D poses
@@ -64,7 +120,7 @@ class PoseValidator:
             poses_3d_stage: Stage name in poses_3d_data_loader containing 3D poses
 
         Returns:
-            Average similarity score across all comparisons
+            Average MPJPE across all comparisons
         """
         # Get data from DataLoaders
         gt_poses = gt_data_loader.get_tensor(gt_stage)
@@ -94,7 +150,7 @@ class PoseValidator:
             poses_3d_stage: Stage name containing 3D poses
 
         Returns:
-            List of similarity scores for each sequence pair
+            List of MPJPE scores for each sequence pair
         """
         if len(gt_data_loaders) != len(poses_3d_data_loaders):
             raise ValueError(
@@ -112,7 +168,7 @@ class PoseValidator:
         self, poses_3d: torch.Tensor, gt_poses_2d: torch.Tensor
     ) -> float:
         """
-        Core validation logic between 3D poses and 2D ground truth poses.
+        Core validation logic using MPJPE calculation.
 
         Args:
             poses_3d: 3D poses tensor of shape (num_people, num_frames, num_keypoints, 3)
@@ -120,7 +176,7 @@ class PoseValidator:
                          where the last dimension contains [x, y, confidence]
 
         Returns:
-            Average similarity score across all comparisons
+            Average MPJPE across all comparisons
         """
         # Convert to numpy
         if isinstance(poses_3d, torch.Tensor):
@@ -138,7 +194,7 @@ class PoseValidator:
                 f"Expected 2D GT poses shape (people, frames, keypoints, 3), got {gt_poses_2d.shape}"
             )
 
-        similarities = []
+        mpjpe_scores = []
         num_frames = min(poses_3d.shape[1], gt_poses_2d.shape[1])
 
         # Process each frame
@@ -146,87 +202,30 @@ class PoseValidator:
             frame_3d = poses_3d[:, frame_idx]  # (num_people, num_keypoints, 3)
             frame_2d_gt = gt_poses_2d[:, frame_idx]  # (num_people, num_keypoints, 3)
 
-            frame_similarity = self._compute_frame_similarity(frame_3d, frame_2d_gt)
-            print(frame_similarity)
-            if frame_similarity is not None:
-                similarities.append(frame_similarity)
+            # Extract 2D coordinates (ignore confidence for now)
+            frame_2d_coords = frame_2d_gt[:, :, :2]  # (num_people, num_keypoints, 2)
 
-        return np.mean(similarities) if similarities else 0.0
+            # Filter by confidence if needed
+            confidence = frame_2d_gt[:, :, 2]  # (num_people, num_keypoints)
+            valid_people = []
+            valid_3d = []
+            valid_2d = []
 
-    def _compute_frame_similarity(
-        self, poses_3d_frame: np.ndarray, poses_2d_gt_frame: np.ndarray
-    ) -> Optional[float]:
-        """
-        Compute similarity for a single frame using Hungarian algorithm for optimal assignment.
-        """
-        num_people_3d = poses_3d_frame.shape[0]
-        num_people_2d = poses_2d_gt_frame.shape[0]
+            for person_idx in range(min(frame_3d.shape[0], frame_2d_coords.shape[0])):
+                person_confidence = confidence[person_idx]
+                valid_mask = person_confidence > self.confidence_threshold
 
-        if num_people_3d == 0 or num_people_2d == 0:
-            return None
+                if valid_mask.sum() >= 4:  # Need at least 4 points for PnP
+                    valid_3d.append(frame_3d[person_idx])
+                    valid_2d.append(frame_2d_coords[person_idx])
 
-        # Compute similarity matrix
-        similarity_matrix = np.zeros((num_people_3d, num_people_2d))
+            if len(valid_3d) > 0:
+                valid_3d = np.array(valid_3d)
+                valid_2d = np.array(valid_2d)
 
-        for i, pose_3d in enumerate(poses_3d_frame):
-            for j, pose_2d_gt in enumerate(poses_2d_gt_frame):
-                similarity = self._compute_pose_similarity(pose_3d, pose_2d_gt)
-                similarity_matrix[i, j] = similarity
+                # Calculate MPJPE for this frame
+                frame_mpjpe = self.mpjpe(valid_3d, valid_2d)
+                print(frame_mpjpe)
+                mpjpe_scores.append(frame_mpjpe)
 
-        # Optimal assignment using Hungarian algorithm
-        if similarity_matrix.size > 0:
-            row_indices, col_indices = linear_sum_assignment(-similarity_matrix)
-            assigned_similarities = similarity_matrix[row_indices, col_indices]
-            return np.mean(assigned_similarities)
-
-        return None
-
-    def _compute_pose_similarity(
-        self, pose_3d: np.ndarray, pose_2d_gt: np.ndarray
-    ) -> float:
-        """
-        Compute similarity between a single 3D pose and 2D ground truth pose using PnP projection.
-        """
-        try:
-            # Extract 2D coordinates and confidence
-            keypoints_2d = pose_2d_gt[:, :2]  # (num_keypoints, 2)
-            confidence = pose_2d_gt[:, 2]  # (num_keypoints,)
-            print(confidence)
-
-            # Filter by confidence threshold
-            valid_mask = confidence > self.confidence_threshold
-
-            if valid_mask.sum() < 4:
-                return 0.0  # Need at least 4 points for PnP
-
-            # Get valid keypoints
-            valid_keypoints_2d = keypoints_2d[valid_mask].astype(np.float32)
-            valid_keypoints_3d = pose_3d[valid_mask].astype(np.float32)
-
-            # Project 3D pose to 2D using PnP
-            success, rvec, tvec, _ = cv2.solvePnPRansac(
-                valid_keypoints_3d,
-                valid_keypoints_2d,
-                self.camera_matrix,
-                self.dist_coeffs,
-            )
-
-            if not success:
-                return 0.0
-
-            # Project 3D points to 2D
-            projected_points, _ = cv2.projectPoints(
-                valid_keypoints_3d, rvec, tvec, self.camera_matrix, self.dist_coeffs
-            )
-            projected_points = projected_points.reshape(-1, 2)
-
-            # Compute cosine similarity
-            cos_sim_matrix = cosine_similarity(projected_points, valid_keypoints_2d)
-            cos_sim = np.diag(cos_sim_matrix)
-
-            # Return mean similarity (handle NaN)
-            cos_sim = np.nan_to_num(cos_sim, nan=0.0)
-            return np.mean(cos_sim)
-
-        except Exception:
-            return 0.0
+        return np.mean(mpjpe_scores) if mpjpe_scores else float("inf")
