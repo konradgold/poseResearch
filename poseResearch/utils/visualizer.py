@@ -3,7 +3,13 @@ import torch
 import os
 import cv2
 import glob
-from typing import Optional
+from typing import Optional, Literal, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .data_loader import DataLoader
+
+# Define visualization stage types
+VisualizationStage = Literal["flatpose", "poselifting"]
 
 
 class PoseVisualizer(ABC):
@@ -99,6 +105,7 @@ class PoseVisualizer(ABC):
             return None
 
         print(f"Creating video from {len(image_files)} images...")
+        print(f"First few images: {[os.path.basename(f) for f in image_files[:3]]}")
 
         # Read first image to get dimensions
         first_image = cv2.imread(image_files[0])
@@ -109,8 +116,8 @@ class PoseVisualizer(ABC):
         height, width, layers = first_image.shape
         output_video_path = os.path.join(self.output_dir, video_filename)
 
-        # Create video writer
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        # Create video writer with a more compatible codec
+        fourcc = cv2.VideoWriter_fourcc(*"XVID")
         video_writer = cv2.VideoWriter(
             output_video_path, fourcc, self.video_fps, (width, height)
         )
@@ -120,21 +127,41 @@ class PoseVisualizer(ABC):
             return None
 
         # Add each image to video
+        frames_written = 0
         for i, image_file in enumerate(image_files):
             image = cv2.imread(image_file)
             if image is not None:
+                # Ensure image dimensions match the video writer
+                if image.shape[:2] != (height, width):
+                    print(
+                        f"Resizing image {i} from {image.shape[:2]} to {(height, width)}"
+                    )
+                    image = cv2.resize(image, (width, height))
+
                 video_writer.write(image)
-                if i % 20 == 0:  # Progress update every 20 frames
-                    print(f"Processing frame {i+1}/{len(image_files)}")
+                frames_written += 1
+                if i % 5 == 0:  # More frequent progress updates
+                    print(
+                        f"Processing frame {i+1}/{len(image_files)} (written: {frames_written})"
+                    )
             else:
                 print(f"Warning: Could not read image {image_file}")
 
-        video_writer.release()
-        print(f"Video saved to: {output_video_path}")
+        print(f"Total frames written to video: {frames_written}")
 
-        # Track created videos
-        self._created_videos.append(output_video_path)
-        return output_video_path
+        video_writer.release()
+
+        # Verify the video file was created and has content
+        if os.path.exists(output_video_path) and os.path.getsize(output_video_path) > 0:
+            print(
+                f"Video saved to: {output_video_path} (size: {os.path.getsize(output_video_path)} bytes)"
+            )
+            # Track created videos
+            self._created_videos.append(output_video_path)
+            return output_video_path
+        else:
+            print(f"Failed to create video file or file is empty: {output_video_path}")
+            return None
 
     def create_all_videos(self) -> list:
         """
@@ -169,8 +196,8 @@ class PoseVisualizer(ABC):
         num_people, num_frames = poses.shape[0], poses.shape[1]
         print(f"Processing {num_people} people across {num_frames} frames...")
 
-        # Compute fixed axis limits if this visualizer supports it (3D visualizers)
-        if hasattr(self, "compute_fixed_axis_limits") and poses.shape[3] == 3:
+        # Compute fixed axis limits if this visualizer supports it
+        if hasattr(self, "compute_fixed_axis_limits"):
             self.compute_fixed_axis_limits(poses)
 
         # Process each frame individually
@@ -238,3 +265,49 @@ class PoseVisualizer(ABC):
             print(
                 f"Cleaned up {removed_count} image files, kept {len(image_files) - removed_count} samples"
             )
+
+    def visualize_from_dataloader(
+        self,
+        data_loader: "DataLoader",
+        stage: VisualizationStage,
+        source_name: str = "dataloader_viz",
+    ) -> Optional[list]:
+        """
+        Visualize poses from a DataLoader for a specific stage
+
+        Args:
+            data_loader: DataLoader containing the pose data
+            stage: Which stage to visualize ("flatpose" or "poselifting")
+            source_name: Name for this visualization session
+
+        Returns:
+            List of created video paths if videos were created, None otherwise
+        """
+        # Get tensor data from the specified stage
+        poses_tensor = data_loader.get_tensor(stage)
+
+        if poses_tensor is None:
+            raise ValueError(f"No data found for stage '{stage}' in DataLoader")
+
+        print(f"Visualizing {stage} data with shape: {poses_tensor.shape}")
+
+        # Validate tensor dimensions based on stage
+        if stage == "flatpose":
+            if poses_tensor.dim() != 4 or poses_tensor.shape[3] != 3:
+                raise ValueError(
+                    f"Expected flatpose data to have shape (people, frames, keypoints, 3), got {poses_tensor.shape}"
+                )
+            # For 2D visualization, we only use the first 2 coordinates
+            poses_for_viz = poses_tensor[..., :2]  # (people, frames, keypoints, 2)
+
+        elif stage == "poselifting":
+            if poses_tensor.dim() != 4 or poses_tensor.shape[3] != 3:
+                raise ValueError(
+                    f"Expected poselifting data to have shape (people, frames, keypoints, 3), got {poses_tensor.shape}"
+                )
+            poses_for_viz = poses_tensor  # (people, frames, keypoints, 3)
+
+        # Use the existing visualize_all_frames method
+        created_videos = self.visualize_all_frames(poses_for_viz, source_name, stage)
+
+        return created_videos

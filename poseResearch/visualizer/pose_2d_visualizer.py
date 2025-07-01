@@ -2,6 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import os
 from utils.visualizer import PoseVisualizer
 from utils.skeleton_config import SkeletonConfig
 from visualizer.skeleton_config import create_skeleton_config
@@ -41,6 +42,9 @@ class Pose2DVisualizer(PoseVisualizer):
         # Cache skeleton properties for performance
         self._cache_skeleton_properties()
 
+        # Fixed axis limits for consistent view
+        self.fixed_axis_limits = None
+
     def _cache_skeleton_properties(self):
         """Cache skeleton properties for better performance during visualization"""
         self.keypoint_names = self.skeleton_config.get_keypoint_names()
@@ -52,6 +56,40 @@ class Pose2DVisualizer(PoseVisualizer):
         self.keypoint_colors = self.skeleton_config.get_keypoint_colors()
         self.skeleton_colors = self.skeleton_config.get_skeleton_colors()
         self.num_keypoints = self.skeleton_config.get_num_keypoints()
+
+    def compute_fixed_axis_limits(self, poses_2d: torch.Tensor, margin: int = 100):
+        """
+        Compute fixed axis limits from all poses to ensure consistent frame size
+
+        Args:
+            poses_2d: Tensor of shape (batch_size, num_frames, num_keypoints, 2)
+            margin: Pixel margin around the poses
+        """
+        poses_np = poses_2d.detach().cpu().numpy()
+
+        # Flatten to get all keypoints across all people and frames
+        all_keypoints = poses_np.reshape(-1, 2)  # (total_keypoints, 2)
+
+        # Remove invalid keypoints (NaN values)
+        valid_keypoints = all_keypoints[~np.isnan(all_keypoints).any(axis=1)]
+
+        if len(valid_keypoints) > 0:
+            x_min, x_max = (
+                valid_keypoints[:, 0].min() - margin,
+                valid_keypoints[:, 0].max() + margin,
+            )
+            y_min, y_max = (
+                valid_keypoints[:, 1].min() - margin,
+                valid_keypoints[:, 1].max() + margin,
+            )
+
+            self.fixed_axis_limits = (x_min, x_max, y_min, y_max)
+            print(
+                f"Fixed axis limits: x=[{x_min:.0f}, {x_max:.0f}], y=[{y_min:.0f}, {y_max:.0f}]"
+            )
+        else:
+            self.fixed_axis_limits = None
+            print("No valid keypoints found for axis limits")
 
     def should_visualize(self, stage_name: str, batch_idx: int) -> bool:
         """Only visualize flatpose stages, every N batches"""
@@ -161,8 +199,13 @@ class Pose2DVisualizer(PoseVisualizer):
         ax.set_aspect("equal")
         ax.grid(True, alpha=0.3)
 
-        # Set reasonable axis limits based on keypoints
-        if len(keypoints) > 0:
+        # Use fixed axis limits if available, otherwise calculate per frame
+        if self.fixed_axis_limits is not None:
+            x_min, x_max, y_min, y_max = self.fixed_axis_limits
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(y_min, y_max)
+        elif len(keypoints) > 0:
+            # Fallback to per-frame calculation if no fixed limits
             valid_keypoints = keypoints[~np.isnan(keypoints).any(axis=1)]
             if len(valid_keypoints) > 0:
                 margin = 50  # pixels
@@ -396,5 +439,7 @@ class Pose2DVisualizer(PoseVisualizer):
         if video_path:
             created_videos.append(video_path)
             print(f"✅ Created 2D pose video: {video_path}")
+        else:
+            print("❌ Failed to create 2D pose video")
 
         return created_videos

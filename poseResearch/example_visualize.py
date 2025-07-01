@@ -1,52 +1,45 @@
 #!/usr/bin/env python3
 """
-Simple example usage of pose visualization with video creation
+Example showing how to visualize poses using DataLoader and the new visualization system
 """
 
 import torch
 import numpy as np
 import json
+from pathlib import Path
+from utils.data_loader import DataLoader
 from visualizer.pose_3d_visualizer import Pose3DVisualizer
+from visualizer.pose_2d_visualizer import Pose2DVisualizer
 
 
-def main():
-    try:
-        with open("results_interactive4_t3-cam16_anatomical.json", "r") as f:
-            data = json.load(f)
+def visualize_2d_poses():
+    data_loader = DataLoader()
+    data_loader.load_json("dataloader/results_flatpose.json")
 
-        poses_list = data["poses_3d"]
-        metadata = data["metadata"]
+    visualizer_2d = Pose2DVisualizer(
+        skeleton_type="coco",
+        output_dir="./pose_video_output_2d",
+        create_videos=True,
+        video_fps=30,
+    )
 
-        print(
-            f"✅ Loaded {metadata['num_people']} people, {metadata['num_frames']} frames"
-        )
+    visualizer_2d.visualize_from_dataloader(data_loader, "flatpose")
 
-        # Convert to tensor
-        poses = torch.from_numpy(np.array(poses_list)).float()
 
-        # Create visualizer with video enabled
-        visualizer = Pose3DVisualizer(
-            skeleton_type="anatomical",
-            output_dir="./pose_video_output",
-            create_videos=True,
-            video_fps=30,
-        )
+def visualize_3d_poses():
+    data_loader = DataLoader()
+    data_loader.load_json("dataloader/results_3d.json")
 
-        # Generate all frames and create video in one call
-        created_videos = visualizer.visualize_all_frames(
-            poses, "h36m_poses", "pose_data"
-        )
+    visualizer_3d = Pose3DVisualizer(
+        skeleton_type="anatomical",
+        output_dir="./pose_video_output_3d",
+        create_videos=True,
+        video_fps=30,
+    )
 
-        if created_videos:
-            print(f"Success! Video created: {created_videos[0]}")
-        else:
-            print("Failed to create video")
-
-    except FileNotFoundError:
-        print("❌ Pose data file not found")
-    except Exception as e:
-        print(f"❌ Error: {e}")
+    visualizer_3d.visualize_from_dataloader(data_loader, "poselifting")
 
 
 if __name__ == "__main__":
-    main()
+    # visualize_2d_poses()
+    visualize_3d_poses()

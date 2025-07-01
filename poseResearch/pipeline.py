@@ -4,8 +4,7 @@ from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from utils.data_loader import DataLoader
-from utils.visualizer import PoseVisualizer
-from typing import Optional, Tuple, List
+from typing import Tuple, List
 from utils.data_loader import StageName
 
 
@@ -16,8 +15,6 @@ class EstimationPipe:
         flatpose: TwoDPoseEstimation,
         poselifting: ThreeDPoseEstimation,
         data_loader: DataLoader,
-        visualizer_2d: Optional[PoseVisualizer] = None,
-        visualizer_3d: Optional[PoseVisualizer] = None,
     ) -> None:
         self.pipe_classes: List[Tuple[StageName, Estimation]] = [
             ("preprocessor", preprocessor),
@@ -25,8 +22,6 @@ class EstimationPipe:
             ("poselifting", poselifting),
         ]
         self.data_loader: DataLoader = data_loader
-        self.visualizer_2d: Optional[PoseVisualizer] = visualizer_2d
-        self.visualizer_3d: Optional[PoseVisualizer] = visualizer_3d
         self.processed_batches: int = 0
 
     def forward(self) -> torch.Tensor:
@@ -52,17 +47,6 @@ class EstimationPipe:
                 **getattr(module, "config", {}),
             }
             self.data_loader.handle(current_data, stage_config)
-
-            # Use separate visualizers for different stages
-            if stage_name == "flatpose" and self.visualizer_2d:
-                self.visualizer_2d.visualize_2d_poses(
-                    current_data, batch_info, stage_name
-                )
-
-            elif stage_name == "poselifting" and self.visualizer_3d:
-                self.visualizer_3d.visualize_3d_poses(
-                    current_data, batch_info, stage_name
-                )
 
         # Final output validation
         assert isinstance(current_data, torch.Tensor)
