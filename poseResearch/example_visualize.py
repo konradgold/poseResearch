@@ -41,5 +41,5 @@ def visualize_3d_poses():
 
 
 if __name__ == "__main__":
-    # visualize_2d_poses()
-    visualize_3d_poses()
+    visualize_2d_poses()
+    # visualize_3d_poses()

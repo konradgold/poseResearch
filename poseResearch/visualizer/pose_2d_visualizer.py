@@ -312,11 +312,12 @@ class Pose2DVisualizer(PoseVisualizer):
             skeleton_name = self.skeleton_config.__class__.__name__.replace(
                 "SkeletonConfig", ""
             ).lower()
-            plt.savefig(
-                f"{self.output_dir}/{stage_name}_batch_{batch_idx}_2d_{skeleton_name}.png",
-                dpi=150,
-                bbox_inches="tight",
-            )
+
+            # Use frame_id if available for sequential video frame naming (like 3D visualizer)
+            frame_id = batch_info.get("frame_id", batch_idx)
+            filename = f"{self.output_dir}/{stage_name}_frame_{frame_id:04d}_2d_{skeleton_name}.png"
+
+            plt.savefig(filename, dpi=150, bbox_inches="tight")
             plt.close()
         else:
             plt.show()

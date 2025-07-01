@@ -100,6 +100,20 @@ class PoseVisualizer(ABC):
         image_search_pattern = os.path.join(self.output_dir, image_pattern)
         image_files = sorted(glob.glob(image_search_pattern))
 
+        # Additional safeguard: try to sort numerically by extracting frame numbers
+        try:
+            import re
+
+            def extract_frame_number(filename):
+                # Extract frame number from patterns like "frame_0001" or "batch_1"
+                match = re.search(r"(?:frame_|batch_)(\d+)", os.path.basename(filename))
+                return int(match.group(1)) if match else 0
+
+            image_files = sorted(image_files, key=extract_frame_number)
+        except:
+            # Fall back to lexicographic sorting if numeric extraction fails
+            pass
+
         if not image_files:
             print(f"No images found matching pattern: {image_search_pattern}")
             return None
