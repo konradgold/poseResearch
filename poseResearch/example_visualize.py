@@ -3,10 +3,6 @@
 Example showing how to visualize poses using DataLoader and the new visualization system
 """
 
-import torch
-import numpy as np
-import json
-from pathlib import Path
 from utils.data_loader import DataLoader
 from visualizer.pose_3d_visualizer import Pose3DVisualizer
 from visualizer.pose_2d_visualizer import Pose2DVisualizer

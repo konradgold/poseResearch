@@ -2,7 +2,6 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-import os
 from utils.visualizer import PoseVisualizer
 from utils.skeleton_config import SkeletonConfig
 from visualizer.skeleton_config import create_skeleton_config

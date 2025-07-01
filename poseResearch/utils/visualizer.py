@@ -4,6 +4,7 @@ import os
 import cv2
 import glob
 from typing import Optional, Literal, TYPE_CHECKING
+import re
 
 if TYPE_CHECKING:
     from .data_loader import DataLoader
@@ -101,18 +102,13 @@ class PoseVisualizer(ABC):
         image_files = sorted(glob.glob(image_search_pattern))
 
         # Additional safeguard: try to sort numerically by extracting frame numbers
-        try:
-            import re
 
-            def extract_frame_number(filename):
-                # Extract frame number from patterns like "frame_0001" or "batch_1"
-                match = re.search(r"(?:frame_|batch_)(\d+)", os.path.basename(filename))
-                return int(match.group(1)) if match else 0
+        def extract_frame_number(filename):
+            # Extract frame number from patterns like "frame_0001" or "batch_1"
+            match = re.search(r"(?:frame_|batch_)(\d+)", os.path.basename(filename))
+            return int(match.group(1)) if match else 0
 
-            image_files = sorted(image_files, key=extract_frame_number)
-        except:
-            # Fall back to lexicographic sorting if numeric extraction fails
-            pass
+        image_files = sorted(image_files, key=extract_frame_number)
 
         if not image_files:
             print(f"No images found matching pattern: {image_search_pattern}")

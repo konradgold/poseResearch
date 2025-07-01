@@ -32,8 +32,6 @@ class EstimationPipe:
                 "No input data available. Use data_loader.set_input() or load data."
             )
 
-        batch_info = {"original_batch_size": current_data.size(0)}
-
         # Process through stages using dataloader logic
         for stage_name, module in self.pipe_classes:
             if self.data_loader.should_skip_stage(stage_name):
