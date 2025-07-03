@@ -1,15 +1,9 @@
-import imageio
 import numpy as np
 import os
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-from tqdm import tqdm
-from .utils import from_coco_to_hm36
 from MotionBERT.lib.utils.tools import get_config
 from MotionBERT.lib.utils.learning import load_backbone
-from MotionBERT.lib.data.dataset_wild import WildDetDataset
-from MotionBERT.lib.utils.vismo import render_and_save
 from .pose_estimation_3D import ThreeDPoseEstimation
 
 
