@@ -73,9 +73,6 @@ exclude = [
     "train_custom.py",
 ]
 
-# [tool.uv]
-# editable = [".MotionBERT"]
-
 [tool.uv.workspace]
 members = [
     "MotionBERT",
