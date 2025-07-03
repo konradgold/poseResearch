@@ -29,14 +29,24 @@ class ThreeDPoseEstimation(Estimation):
         Returns True if valid, False otherwise.
         """
         if not isinstance(input_tensor, torch.Tensor):
+            print(f"Warning: {self.identifier} returned non-tensor output.")
             return False
         if input_tensor.ndim != 4:
+            print(
+                f"Warning: {self.identifier} returned tensor with {input_tensor.ndim} dimensions. Expected 4."
+            )
             return False
         P, T, Nk, D = input_tensor.shape
         expected_Nk = getattr(self, "num_keypoints", 17)
         expected_D = getattr(self, "num_dims", 3)
         if D != expected_D or Nk != expected_Nk:
+            print(
+                f"Warning: {self.identifier} returned tensor with {Nk} keypoints and {D} dimensions. Expected {expected_Nk} keypoints and {expected_D} dimensions."
+            )
             return False
-        if P < 1 or T < 1:
+        if T < 1:
+            print(f"Warning: {self.identifier} returned no frames.")
             return False
+        if P < 1:
+            print(f"Warning: {self.identifier} returned no persons.")
         return True

@@ -20,6 +20,7 @@ class Estimation(ABC):
 
     def forward(self, batch) -> torch.Tensor:
         output = self._forward(batch)
+        print(f"{self.identifier} outputs shape: {output.shape}.")
         if self.output_check(output):
             print(
                 f"Forward of {self.identifier} is done with output shape {output.shape}."

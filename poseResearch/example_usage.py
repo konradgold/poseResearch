@@ -146,7 +146,7 @@ def example6_motionbert_from_2d_poses():
     print("\n=== MotionBERT from 2D Poses ===")
 
     data_loader = DataLoader()
-    data_loader.load_json("dataloader/results_flatpose.json")
+    data_loader.load_json("poseResearch/dataloader/results_flatpose.json")
 
     pipeline = EstimationPipe(
         NoPreprocess(),

@@ -13,11 +13,11 @@ from MotionBERT.lib.data.dataset_wild import WildDetDataset
 from MotionBERT.lib.utils.vismo import render_and_save
 
 def infer_wild(
-    config_path: str = "estimation/pose3D/lib/MotionBERT/MB_ft_h36m_global_lite.yaml",
-    checkpoint_path: str = "estimation/pose3D/lib/MotionBERT/FT_MB_lite_MB_ft_h36m_global_lite/best_epoch.bin",
-    vid_path: str = "fem1_t1_preview.mp4",
-    json_path: str = "dataloader/results_2d.json",
-    out_path: str = "results",
+    config_path: str = "MotionBERT/MB_ft_h36m_global_lite.yaml",
+    checkpoint_path: str = "MotionBERT/FT_MB_lite_MB_ft_h36m_global_lite/best_epoch.bin",
+    vid_path: str = "poseResearch/fem1_t1_preview.mp4",
+    json_path: str = "poseResearch/dataloader/results_flatpose.json",
+    out_path: str = "poseResearch/results",
     pixel: bool = False,
     rootrel: bool = True,
     gt_2d: bool = False,

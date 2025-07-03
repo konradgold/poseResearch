@@ -1,0 +1,27 @@
+[project]
+name = "motionbert"
+version = "0.1.0"
+description = "A Unified Perspective on Learning Human Motion Representations"
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "tensorboardX",
+    "tqdm",
+    "easydict",
+    "prettytable",
+    "chumpy",
+    "opencv-python",
+    "imageio-ffmpeg",
+    "matplotlib==3.1.1",
+    "roma",
+    "ipdb",
+    "pytorch-metric-learning",
+    "smplx[all]",
+    "torch>=1.8.0",
+    "torchvision",
+    "torchaudio",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

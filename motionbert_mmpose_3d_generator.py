@@ -343,7 +343,7 @@ def main():
     )
     print("3D pose generator initialized successfully!")
     # Example with video file
-    poses_2d, poses_3d = generator.generate_3d_poses("/Volumes/KG1TB/data/Untitled.mov")
+    poses_2d, poses_3d = generator.generate_3d_poses("poseResearch/fem1_t1_preview.mp4")
 
     print(poses_3d.shape)
 
