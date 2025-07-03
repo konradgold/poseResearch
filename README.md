@@ -2,7 +2,22 @@ See https://docs.astral.sh/uv/guides/projects/ for any further information.
 
 ---
 
-# Format
+# Run this project
+
+```bash
+pip install -r requirements.txt
+```
+
+Examples from [poseResearch/example_usage.py](poseResearch/example_usage.py) now work out of the box if they do not use the cloned subrepositories. If you need them use uv to create virtual environment:
+
+```bash
+uv venv
+.venv/Scripts/activate
+```
+
+# Development
+
+## Format
 
 Check whether all files are properly formatted:
 
@@ -14,7 +29,7 @@ black . --check
 
 If you add a directory to root that should not be formatted, add it to the exclude pattern in the [pyproject.toml](pyproject.toml).
 
-# Lint
+## Lint
 
 Check whether any file needs linting:
 

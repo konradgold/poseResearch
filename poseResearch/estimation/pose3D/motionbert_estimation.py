@@ -197,4 +197,9 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
         )
 
         results_tensor = torch.from_numpy(poses_3d)
+        # TODO:
+        # Due to flattening poses_2d into 3 dimensions during preprocessing, we only have 3 here as well.
+        # Find out whether this is a MotionBERT problem. If not, this has to be fixed or MotionBERT is only usable for a single person.
+        if results_tensor.ndim == 3:
+            results_tensor = results_tensor.unsqueeze(0)
         return results_tensor
