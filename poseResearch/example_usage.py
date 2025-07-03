@@ -164,5 +164,5 @@ if __name__ == "__main__":
     # example_2_from_2d_poses()
     # example_3_from_3d_poses()
     # example_4_individual_stage()
-    # example_5_from_video()
-    example6_motionbert_from_2d_poses()
+    example_5_from_video()
+    # example6_motionbert_from_2d_poses()

@@ -63,12 +63,21 @@ class DataLoader:
         return frames_tensor
 
     def set_input_from_video(
-        self, video_path: str, num_frames: Optional[int] = None
+        self, video_path: str | Path, num_frames: Optional[int] = None
     ) -> None:
         """Set the input data from a video file."""
+        resolved_video_path = Path(video_path)
+        if not resolved_video_path.exists():
+            print(f"Video file not found: {video_path}, search in the project root.")
+            # Search in the project root (only works if this file is in poseResearch/utils/)
+            relative_video_path = Path(__file__).parent.parent / video_path
+            if not relative_video_path.exists():
+                raise FileNotFoundError(f"Video file not found: {relative_video_path}")
+            resolved_video_path = relative_video_path
+
         # Check whether video exists
-        if not Path(video_path).exists():
-            raise FileNotFoundError(f"Video file not found: {video_path}")
+        if not resolved_video_path.exists():
+            raise FileNotFoundError(f"Video file not found: {resolved_video_path}")
 
         valid_extensions = {
             ".mp4",
@@ -85,7 +94,7 @@ class DataLoader:
             raise ValueError(
                 f"File {video_path} does not have a valid video extension: {ext}"
             )
-        video_frames = self.video_to_tensor(video_path, num_frames)
+        video_frames = self.video_to_tensor(str(resolved_video_path), num_frames)
         self.set_input(video_frames)
 
     def get_current_input(self) -> Optional[torch.Tensor]:
