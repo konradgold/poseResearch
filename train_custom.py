@@ -14,12 +14,12 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from MotionBERT.lib.utils.tools import *
-from MotionBERT.lib.utils.learning import *
+from MotionBERT.lib.utils.tools import get_config
+from MotionBERT.lib.utils.learning import AverageMeter, load_backbone
 from MotionBERT.lib.utils.utils_data import flip_data
 from MotionBERT.lib.data.dataset_motion_3d import MotionDataset2D
 from MotionBERT.lib.data.augmentation import Augmenter2D
-from MotionBERT.lib.model.loss import *
+from MotionBERT.lib.model.loss import loss_2d_weighted, mpjpe, p_mpjpe
 
 
 def set_random_seed(seed):
