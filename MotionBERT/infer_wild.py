@@ -12,69 +12,6 @@ from MotionBERT.lib.utils.utils_data import flip_data
 from MotionBERT.lib.data.dataset_wild import WildDetDataset
 from MotionBERT.lib.utils.vismo import render_and_save
 
-def infer_wild(
-    config_path: str = "MotionBERT/MB_ft_h36m_global_lite.yaml",
-    checkpoint_path: str = "MotionBERT/FT_MB_lite_MB_ft_h36m_global_lite/best_epoch.bin",
-    vid_path: str = "poseResearch/fem1_t1_preview.mp4",
-    json_path: str = "poseResearch/dataloader/results_flatpose.json",
-    out_path: str = "poseResearch/results",
-    pixel: bool = False,
-    rootrel: bool = True,
-    gt_2d: bool = False,
-) -> np.ndarray:
-    args = get_config(config_path)
-
-    model_backbone = load_backbone(args)
-    if torch.cuda.is_available():
-        model_backbone = nn.DataParallel(model_backbone)
-        model_backbone = model_backbone.cuda()
-    print("Loading checkpoint", checkpoint_path)
-    checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
-    model_backbone.load_state_dict(checkpoint["model_pos"], strict=True)
-    model_pos = model_backbone
-    model_pos.eval()
-    testloader_params = {
-        "batch_size": 1,
-        "shuffle": False,
-        "num_workers": 8,
-        "pin_memory": True,
-        "prefetch_factor": 4,
-        "persistent_workers": True,
-        "drop_last": False,
-    }
-    vid = imageio.get_reader(vid_path, plugin="ffmpeg")
-    fps_in = vid.get_meta_data()["fps"]
-    vid_size = vid.get_meta_data()["size"]
-    os.makedirs(out_path, exist_ok=True)
-    wild_dataset = WildDetDataset(json_path)
-    test_loader = DataLoader(wild_dataset, **testloader_params)
-    results_all = []
-    with torch.no_grad():
-        for batch_input in tqdm(test_loader):
-            N, T = batch_input.shape[:2]
-            if torch.cuda.is_available():
-                batch_input = batch_input.cuda()
-            batch_input = batch_input[:, :, :, :2]
-            predicted_3d_pos = model_pos(batch_input)
-            if rootrel:
-                predicted_3d_pos[:, :, 0, :] = 0  # [N,T,17,3]
-            else:
-                predicted_3d_pos[:, 0, 0, 2] = 0
-                pass
-            if gt_2d:
-                predicted_3d_pos[..., :2] = batch_input[..., :2]
-            results_all.append(predicted_3d_pos.cpu().numpy())
-    results_all = np.hstack(results_all)
-    results_all = np.concatenate(results_all)
-    # render_and_save(results_all, "%s/X3D.mp4" % (out_path), keep_imgs=False, fps=fps_in)
-    # if pixel:
-    #     # Convert to pixel coordinates
-    #     results_all = results_all * (min(vid_size) / 2.0)
-    #     results_all[:, :, :2] = results_all[:, :, :2] + np.array(vid_size) / 2.0
-    # np.save("%s/X3D.npy" % (out_path), results_all)
-    return results_all
-
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="MotionBERT/configs/pose3d/MB_ft_h36m_global_lite.yaml", help="Path to the config file.")
