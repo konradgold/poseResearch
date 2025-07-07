@@ -22,6 +22,13 @@ dependencies = [
     "ultralytics>=8.3.146",
 ]
 
+[build-system]
+requires = ["setuptools>=80.9.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["MotionBERT"]
+
 [tool.black]
 line-length = 88
 target-version = ['py312']
@@ -64,4 +71,9 @@ exclude = [
     "pose_estimation",
     "PoseGPT",
     "train_custom.py",
+]
+
+[tool.uv.workspace]
+members = [
+    "MotionBERT",
 ]

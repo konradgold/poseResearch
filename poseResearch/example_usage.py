@@ -11,6 +11,7 @@ from estimation.preprocess.no_preprocess import NoPreprocess
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose2D.yolo_estimation import YOLOEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
+from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
 
 
 # Minimal dummy estimators
@@ -130,11 +131,32 @@ def example_5_from_video():
     print("Data loading complete.")
 
     pipeline = EstimationPipe(
-        NoPreprocess(), YOLOEstimation("yolo11s-pose.pt"), Dummy3DPose(), data_loader
+        NoPreprocess(),
+        YOLOEstimation("yolo11s-pose.pt"),
+        MotionBERTEstimation(),
+        data_loader,
     )
 
     result = pipeline.forward()
     print(f"Video result: {result.shape}")
+
+
+def example6_motionbert_from_2d_poses():
+    """Load 2D poses and run MotionBERT."""
+    print("\n=== MotionBERT from 2D Poses ===")
+
+    data_loader = DataLoader()
+    data_loader.load_json("poseResearch/dataloader/results_flatpose.json")
+
+    pipeline = EstimationPipe(
+        NoPreprocess(),
+        YOLOEstimation("yolo11s-pose.pt"),
+        MotionBERTEstimation(),
+        data_loader,
+    )
+
+    result = pipeline.forward()
+    print(f"MotionBERT result: {result.shape}")
 
 
 if __name__ == "__main__":
@@ -143,3 +165,4 @@ if __name__ == "__main__":
     # example_3_from_3d_poses()
     # example_4_individual_stage()
     example_5_from_video()
+    # example6_motionbert_from_2d_poses()
