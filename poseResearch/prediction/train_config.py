@@ -29,7 +29,7 @@ class Config:
     beta1: float = 0.9
     beta2: float = 0.95
     grad_clip: float = 1.0
-    vocab_size: int = 486
+    vocab_size: int = 2048
     
     # learning rate decay settings
     decay_lr: bool = True
@@ -46,9 +46,9 @@ class Config:
     eval_only: bool = False
     always_save_checkpoint: bool = True
     init_from: str = 'scratch'
-    dataset: str = 'pose_data'
+    dataset: str = 'overfit'
     backend: str = 'nccl'
-    compile: bool = True
+    compile: bool = False
 
     backend = 'nccl' # 'nccl', 'gloo', etc.
 # system

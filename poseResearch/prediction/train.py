@@ -32,7 +32,7 @@ from train_config import Config
 import wandb
 
 # -----------------------------------------------------------------------------
-train_config = Config.from_yaml('config/train_gpt2.yaml') # load config from yaml file
+train_config = Config.from_yaml('poseResearch/prediction/config/train_gpt2.yaml') # load config from yaml file
 
 # -----------------------------------------------------------------------------
 config = train_config.to_dict() # will be useful for logging
@@ -87,7 +87,7 @@ def get_batch(split):
         # pin arrays x,y, which allows us to move them to GPU asynchronously (non_blocking=True)
         x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(device, non_blocking=True)
     else:
-        x, y = x.to(device), y.to(device)
+        x, y = x.to(train_config.device), y.to(train_config.device)
     return x, y
 
 # init these up here, can override if init_from='resume' (i.e. from a checkpoint)
@@ -164,7 +164,7 @@ if train_config.init_from == 'resume':
 checkpoint = None # free up memory
 
 # compile the model
-if compile:
+if train_config.compile:
     print("compiling the model... (takes a ~minute)")
     unoptimized_model = model
     model = torch.compile(model) # requires PyTorch 2.0

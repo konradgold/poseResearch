@@ -4,7 +4,7 @@ import warnings
 from sympy import Q
 import torch
 from transformers import AutoProcessor
-from quantization.base_quantizer import VQVAEBase
+from poseResearch.quantization.base_quantizer import VQVAEBase
 
 
 class FASTQuantizer(VQVAEBase):
@@ -15,7 +15,10 @@ class FASTQuantizer(VQVAEBase):
 
     def fit_tokenizer(self, data: torch.Tensor) -> None:
         normalized_tensor: torch.Tensor = self._preprocess_input(data)
+        # Replace NaN values with zeros and create block list
+        normalized_tensor = torch.nan_to_num(normalized_tensor, nan=0.0)
         block_list = [normalized_tensor[i].detach().numpy() for i in range(normalized_tensor.shape[0])]
+        
         self.tokenizer.fit(block_list)
 
     def _preprocess_input(self, input_tensor: torch.Tensor, action_len: int=8) -> torch.Tensor:

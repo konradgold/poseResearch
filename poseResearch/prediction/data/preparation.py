@@ -3,9 +3,11 @@ import json
 from logging import warning
 from typing import List
 from networkx import set_node_attributes
+from numpy import dtype
+import numpy
 import torch
 from pathlib import Path
-from quantization.fast_quantization import FASTQuantizer
+from poseResearch.quantization.fast_quantization import FASTQuantizer
 
 def load_json(path: str) -> List:
     """Load JSON data from file."""
@@ -39,11 +41,13 @@ def process_data(data: List, tokenizer: str, fit: bool) -> torch.Tensor:
     
     for i, poses in enumerate(data):
         poses = torch.Tensor(poses["poselifting"]["data"]).squeeze()
+        print(f"Processing data for index {i}, shape: {poses.size()}")
         assert len(poses.size()) <= 4
         assert len(poses.size()) >= 3
         if len(poses.size()) == 4:
             warning("Not tested for multiple persons.")
-            poses = poses.transpose(0, 1).reshape(-1, *poses.shape[2:])
+            poses = poses.reshape(-1, *poses.shape[2:])
+        assert len(poses.size()) == 3
         assert poses.size(-2) == 17
         assert poses.size(-1) == 3
         poses = poses.unsqueeze(0)  # Add batch dimension
@@ -61,7 +65,8 @@ def process_data(data: List, tokenizer: str, fit: bool) -> torch.Tensor:
         fast_tokenizer = FASTQuantizer(tokenizer)
         result_tensor = fast_tokenizer.quantize(prepared_data)
         # Your non-tokenization logic here
-        
+    
+
 
     print(f"Nr. Tokens: {fast_tokenizer.vocab_size}")
     return result_tensor
@@ -76,14 +81,14 @@ def save_tensor(tensor: torch.Tensor, output_path: str) -> None: # type: ignore
 
 def main():
     parser = argparse.ArgumentParser(description='Process JSON file and save as tensor')
-    parser.add_argument('tokenizer', type=str, 
+    parser.add_argument('--tokenizer', type=str, 
                        help='What tokenizer to use')
-    parser.add_argument('input_path', type=str, 
+    parser.add_argument('--input_path', type=str, 
                        help='Path to directory of json files')
-    parser.add_argument('output_path', type=str, 
+    parser.add_argument('--output_path', type=str, 
                        help='Path to output .bin file')
-    parser.add_argument('fit', action="store_true", help="Whether to fit the tokeniser")
-    
+    parser.add_argument('--fit', action="store_true", help="Whether to fit the tokeniser")
+
     args = parser.parse_args()
 
     
@@ -96,8 +101,10 @@ def main():
     result_tensor = process_data(data, args.tokenizer, fit=args.fit)
     
     # Save tensor
-    print(f"Saving tensor of shape {result_tensor.shape} to: {args.output_path}")
-    save_tensor(result_tensor, args.output_path)
+
+    result_tensor = numpy.concatenate([x for x in result_tensor])
+    arr = numpy.memmap(args.output_path, dtype=numpy.uint16, mode='w+', shape=(len(result_tensor),))
+    arr[:] = result_tensor[:]
 
     
     print("Processing complete!")

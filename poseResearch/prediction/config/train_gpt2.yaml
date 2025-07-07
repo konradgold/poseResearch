@@ -14,7 +14,7 @@ n_head: 4
 n_embd: 256
 dropout: 0.0 # for pretraining 0 is good, for finetuning try 0.1+
 bias: False
-vocab_size: 486
+vocab_size: 2048
 
 # this makes total number of tokens be 300B
 max_iters: 600000
@@ -41,10 +41,10 @@ always_save_checkpoint: True # if True, always save a checkpoint after each eval
 init_from: 'scratch' # 'scratch' or 'resume' or 'gpt2*'
 # wandb logging
 # data
-dataset: 'pose_data'
+dataset: 'overfit'
 
  # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
 # DDP settings
 backend = 'nccl' # 'nccl', 'gloo', etc.
 # system
-compile: True
+compile: False
