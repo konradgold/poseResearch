@@ -208,12 +208,95 @@ class COCOSkeletonConfig(SkeletonConfig):
         ]
 
 
+class H36MSkeletonConfig(SkeletonConfig):
+    """H36M skeleton configuration with 17 keypoints"""
+
+    def get_keypoint_names(self) -> List[str]:
+        return [
+            "root",
+            "right_hip",
+            "right_knee",
+            "right_ankle",
+            "left_hip",
+            "left_knee",
+            "left_ankle",
+            "belly_button",
+            "neck",
+            "nose",
+            "head_top",
+            "left_shoulder",
+            "left_elbow",
+            "left_wrist",
+            "right_shoulder",
+            "right_elbow",
+            "right_wrist",
+        ]
+
+    def get_keypoint_id2name(self) -> Dict[int, str]:
+        return {i: name for i, name in enumerate(self.get_keypoint_names())}
+
+    def get_keypoint_name2id(self) -> Dict[str, int]:
+        return {name: i for i, name in enumerate(self.get_keypoint_names())}
+
+    def get_skeleton_links(self) -> List[Tuple[int, int]]:
+        return [
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (0, 4),
+            (4, 5),
+            (5, 6),  # legs
+            (0, 7),
+            (7, 8),
+            (8, 9),
+            (9, 10),  # spine
+            (8, 11),
+            (11, 12),
+            (12, 13),  # torso
+            (8, 14),
+            (14, 15),
+            (15, 16),  # arms
+        ]
+
+    def get_body_part_colors(self) -> Dict[str, str]:
+        return {
+            "head": "#FF6B6B",  # Red
+            "torso": "#4ECDC4",  # Teal
+            "left_arm": "#45B7D1",  # Blue
+            "right_arm": "#FFA726",  # Orange
+            "left_leg": "#AB47BC",  # Purple
+            "right_leg": "#66BB6A",  # Green
+        }
+
+    def get_keypoint_body_parts(self) -> List[str]:
+        return [
+            "torso",
+            "right_leg",
+            "right_leg",
+            "right_leg",
+            "left_leg",
+            "left_leg",
+            "left_leg",
+            "torso",
+            "torso",
+            "head",
+            "head",
+            "left_arm",
+            "left_arm",
+            "left_arm",
+            "right_arm",
+            "right_arm",
+            "right_arm",
+        ]
+
+
 # Factory function for easy skeleton config creation
 def create_skeleton_config(skeleton_type: str) -> SkeletonConfig:
     """Factory function to create skeleton configurations"""
     configs = {
         "anatomical": AnatomicalSkeletonConfig,
         "coco": COCOSkeletonConfig,
+        "h36m": H36MSkeletonConfig,
     }
 
     if skeleton_type.lower() not in configs:
