@@ -71,7 +71,13 @@ class FASTQuantizer(VQVAEBase):
     def train_step(self, batch: torch.Tensor, optimizer, scheduler: Any = None):
         warnings.warn("Not implemented")
         return {"None": 0.0}
+
+    @property
+    def vocab_size(self) -> int:
+        return int(self.tokenizer.vocab_size)
     
     def load_parameters(self, path: str, strict: bool = True):
         self.tokenizer.from_pretrained(path)
-        
+
+    def save_tokenizer(self, path: str):
+        self.tokenizer.save_pretrained(path)
