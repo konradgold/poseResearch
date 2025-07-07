@@ -37,8 +37,6 @@ class EstimationPipe:
                 "No input data available. Use data_loader.set_input() or load data."
             )
 
-        batch_info = {"original_batch_size": current_data.size(0)}
-
         # Process through stages using dataloader logic
         for stage_name, module in self.pipe_classes:
             if self.process_manager.should_skip_stage(stage_name):
@@ -52,17 +50,6 @@ class EstimationPipe:
                 **getattr(module, "config", {}),
             }
             self.process_manager.handle(current_data, stage_config)
-
-            # Use separate visualizers for different stages
-            if stage_name == "flatpose" and self.visualizer_2d:
-                self.visualizer_2d.visualize_2d_poses(
-                    current_data, batch_info, stage_name
-                )
-
-            elif stage_name == "poselifting" and self.visualizer_3d:
-                self.visualizer_3d.visualize_3d_poses(
-                    current_data, batch_info, stage_name
-                )
 
         # Final output validation
         assert isinstance(current_data, torch.Tensor)
