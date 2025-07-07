@@ -24,10 +24,10 @@ def visualize_2d_poses():
 
 def visualize_3d_poses():
     data_loader = DataLoader()
-    data_loader.load_json("dataloader/results_3d.json")
+    data_loader.load_json("dataloader/results_poselifting.json")
 
     visualizer_3d = Pose3DVisualizer(
-        skeleton_type="anatomical",
+        skeleton_type="coco",
         output_dir="./pose_video_output_3d",
         create_videos=True,
         video_fps=30,
@@ -37,5 +37,5 @@ def visualize_3d_poses():
 
 
 if __name__ == "__main__":
-    visualize_2d_poses()
-    # visualize_3d_poses()
+    # visualize_2d_poses()
+    visualize_3d_poses()
