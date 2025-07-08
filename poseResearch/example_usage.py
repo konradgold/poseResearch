@@ -126,7 +126,7 @@ def example_5_from_video():
     print("\n=== Video Input ===")
 
     data_loader = DataLoader(save_path="results-from-video.json")
-    data_loader.set_input_from_video("fem1_t1_preview.mp4", num_frames=20)
+    data_loader.set_input_from_video("fem1_t1_preview.mp4", num_frames=120)
 
     print("Data loading complete.")
 
