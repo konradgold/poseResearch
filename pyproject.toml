@@ -28,7 +28,7 @@ requires = ["setuptools>=80.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["MotionBERT", "poseResearch"]
+include = ["detectron2", "MotionBERT", "poseResearch", "VideoPose3D"]
 
 [tool.black]
 line-length = 88
@@ -42,12 +42,14 @@ exclude = '''
   | .venv
   | chatPose
   | configs
+  | detectron2
   | MaskAnyone
   | models
   | Motion-Agent
   | MotionBERT
   | pose_estimation
   | PoseGPT
+  | VideoPose3D
 )/
 '''
 skip-string-normalization = false
@@ -65,17 +67,21 @@ exclude = [
     ".vscode",
     "chatPose",
     "configs",
+    "detectron2",
     "MaskAnyone",
     "models",
     "Motion-Agent",
     "MotionBERT",
     "pose_estimation",
     "PoseGPT",
+    "VideoPose3D",
     "train_custom.py",
 ]
 
 [tool.uv.workspace]
 members = [
+    "detectron2",
     "MotionBERT",
     "poseResearch",
+    "VideoPose3D",
 ]
