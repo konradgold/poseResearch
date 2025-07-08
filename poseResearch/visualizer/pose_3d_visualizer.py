@@ -76,9 +76,9 @@ class Pose3DVisualizer(PoseVisualizer):
 
         # Set fixed axis limits from -3 to 3 for all axes
         self.fixed_axis_limits = {
-            "x": (-4, 4),
-            "y": (-4, 4),
-            "z": (-4, 4),
+            "x": (-3, 3),
+            "y": (-3, 3),
+            "z": (-3, 3),
         }
 
         print(
