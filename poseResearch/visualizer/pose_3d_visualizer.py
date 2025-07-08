@@ -66,7 +66,7 @@ class Pose3DVisualizer(PoseVisualizer):
 
     def compute_fixed_axis_limits(self, all_poses: torch.Tensor):
         """
-        Compute fixed axis limits from all poses to keep consistent view
+        Set fixed axis limits from -3 to 3 for all axes
 
         Args:
             all_poses: Tensor of shape (people, frames, keypoints, 3)
@@ -74,45 +74,16 @@ class Pose3DVisualizer(PoseVisualizer):
         if not self.fixed_axis:
             return
 
-        # Convert to numpy and get all valid keypoints
-        poses_np = all_poses.detach().cpu().numpy()
+        # Set fixed axis limits from -3 to 3 for all axes
+        self.fixed_axis_limits = {
+            "x": (-4, 4),
+            "y": (-4, 4),
+            "z": (-4, 4),
+        }
 
-        # Reshape to (all_keypoints, 3) and remove NaN values
-        all_keypoints = poses_np.reshape(-1, 3)
-        valid_keypoints = all_keypoints[~np.isnan(all_keypoints).any(axis=1)]
-
-        if len(valid_keypoints) > 0:
-            # Compute overall bounds with some padding
-            x_min, x_max = valid_keypoints[:, 0].min(), valid_keypoints[:, 0].max()
-            y_min, y_max = valid_keypoints[:, 1].min(), valid_keypoints[:, 1].max()
-            z_min, z_max = valid_keypoints[:, 2].min(), valid_keypoints[:, 2].max()
-
-            # Add padding (20% of range)
-            x_range = x_max - x_min
-            y_range = y_max - y_min
-            z_range = z_max - z_min
-
-            padding_factor = 0.2
-            x_padding = max(x_range * padding_factor, 0.5)  # At least 0.5 units padding
-            y_padding = max(y_range * padding_factor, 0.5)
-            z_padding = max(z_range * padding_factor, 0.5)
-
-            self.fixed_axis_limits = {
-                "x": (x_min - x_padding, x_max + x_padding),
-                "y": (y_min - y_padding, y_max + y_padding),
-                "z": (z_min - z_padding, z_max + z_padding),
-            }
-
-            print(
-                f"Fixed axis limits computed: X={self.fixed_axis_limits['x']}, Y={self.fixed_axis_limits['y']}, Z={self.fixed_axis_limits['z']}"
-            )
-        else:
-            # Fallback to default limits (appropriate for normalized pose data)
-            self.fixed_axis_limits = {
-                "x": (-3, 3),
-                "y": (-3, 3),
-                "z": (-2, 4),  # Z often has different range (floor to head)
-            }
+        print(
+            f"Fixed axis limits set: X={self.fixed_axis_limits['x']}, Y={self.fixed_axis_limits['y']}, Z={self.fixed_axis_limits['z']}"
+        )
 
     def plot_single_pose_3d(self, ax, keypoints, person_id=0, title=""):
         """
@@ -203,37 +174,11 @@ class Pose3DVisualizer(PoseVisualizer):
             ax.set_xlim(self.fixed_axis_limits["x"])
             ax.set_ylim(self.fixed_axis_limits["y"])
             ax.set_zlim(self.fixed_axis_limits["z"])
-        elif len(keypoints) > 0:
-            # Dynamic axis limits based on current pose
-            valid_keypoints = keypoints[~np.isnan(keypoints).any(axis=1)]
-            if len(valid_keypoints) > 0:
-                max_range = (
-                    np.array(
-                        [
-                            valid_keypoints[:, 0].max() - valid_keypoints[:, 0].min(),
-                            valid_keypoints[:, 1].max() - valid_keypoints[:, 1].min(),
-                            valid_keypoints[:, 2].max() - valid_keypoints[:, 2].min(),
-                        ]
-                    ).max()
-                    / 2.0
-                )
-
-                # Add some padding to the range
-                max_range = max_range * 1.1
-
-                mid_x = (
-                    valid_keypoints[:, 0].max() + valid_keypoints[:, 0].min()
-                ) * 0.5
-                mid_y = (
-                    valid_keypoints[:, 1].max() + valid_keypoints[:, 1].min()
-                ) * 0.5
-                mid_z = (
-                    valid_keypoints[:, 2].max() + valid_keypoints[:, 2].min()
-                ) * 0.5
-
-                ax.set_xlim(mid_x - max_range, mid_x + max_range)
-                ax.set_ylim(mid_y - max_range, mid_y + max_range)
-                ax.set_zlim(mid_z - max_range, mid_z + max_range)
+        else:
+            # Fallback to fixed limits from -3 to 3 for all axes
+            ax.set_xlim(-3, 3)
+            ax.set_ylim(-3, 3)
+            ax.set_zlim(-3, 3)
 
         # Set viewing angle for better visualization of human pose
         ax.view_init(elev=25, azim=45)

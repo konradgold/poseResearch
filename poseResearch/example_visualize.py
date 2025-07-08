@@ -13,7 +13,7 @@ def visualize_2d_poses():
     data_loader.load_json("dataloader/results_flatpose.json")
 
     visualizer_2d = Pose2DVisualizer(
-        skeleton_type="coco",
+        skeleton_type="anatomical",
         output_dir="./pose_video_output_2d",
         create_videos=True,
         video_fps=30,
@@ -27,7 +27,7 @@ def visualize_3d_poses():
     data_loader.load_json("dataloader/results_poselifting.json")
 
     visualizer_3d = Pose3DVisualizer(
-        skeleton_type="coco",
+        skeleton_type="anatomical",
         output_dir="./pose_video_output_3d",
         create_videos=True,
         video_fps=30,
@@ -37,5 +37,5 @@ def visualize_3d_poses():
 
 
 if __name__ == "__main__":
-    # visualize_2d_poses()
+    visualize_2d_poses()
     visualize_3d_poses()

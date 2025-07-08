@@ -270,9 +270,24 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
         if results_tensor.ndim == 3:
             results_tensor = results_tensor.unsqueeze(0)
 
-        # Apply rotation correction to fix the 90-degree z-axis rotation
-        # results_tensor = self._apply_multiple_rotations(
-        #    results_tensor, rotations=[("z", 0), ("y", 0), ("x", 0)]
-        # )
-
         return results_tensor
+
+    def _post_process(self, output: torch.Tensor) -> torch.Tensor:
+        """
+        Post-process MotionBERT output to fix coordinate system orientation.
+
+        Args:
+            output (torch.Tensor): Output from _forward method (P, T, 17, 3)
+
+        Returns:
+            torch.Tensor: Post-processed output with corrected orientation
+        """
+        # Simple rotation correction to fix MotionBERT's coordinate system
+        # Flip y and z axes to correct orientation, then flip y to face positive y
+        corrected_output = output.clone()
+        corrected_output[:, :, :, 1] = output[
+            :, :, :, 2
+        ]  # y = z (flipped from -z to make pose face positive y)
+        corrected_output[:, :, :, 2] = output[:, :, :, 1]  # z = y
+
+        return corrected_output
