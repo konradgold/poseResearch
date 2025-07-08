@@ -283,11 +283,12 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
             torch.Tensor: Post-processed output with corrected orientation
         """
         # Simple rotation correction to fix MotionBERT's coordinate system
-        # Flip y and z axes to correct orientation, then flip y to face positive y
+        # Flip axes to correct orientation and mirror the pose horizontally
         corrected_output = output.clone()
-        corrected_output[:, :, :, 1] = output[
-            :, :, :, 2
-        ]  # y = z (flipped from -z to make pose face positive y)
+        corrected_output[:, :, :, 0] = -output[
+            :, :, :, 0
+        ]  # x = -x (flip x to mirror pose horizontally)
+        corrected_output[:, :, :, 1] = -output[:, :, :, 2]  # y = -z
         corrected_output[:, :, :, 2] = output[:, :, :, 1]  # z = y
 
         return corrected_output
