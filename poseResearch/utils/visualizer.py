@@ -7,7 +7,7 @@ from typing import Optional, Literal, TYPE_CHECKING
 import re
 
 if TYPE_CHECKING:
-    from .data_loader import DataLoader
+    from .process_manager import ProcessManager
 
 # Define visualization stage types
 VisualizationStage = Literal["flatpose", "poselifting"]
@@ -278,15 +278,15 @@ class PoseVisualizer(ABC):
 
     def visualize_from_dataloader(
         self,
-        data_loader: "DataLoader",
+        data_loader: "ProcessManager",
         stage: VisualizationStage,
         source_name: str = "dataloader_viz",
     ) -> Optional[list]:
         """
-        Visualize poses from a DataLoader for a specific stage
+        Visualize poses from a ProcessManager for a specific stage
 
         Args:
-            data_loader: DataLoader containing the pose data
+            data_loader: ProcessManager containing the pose data
             stage: Which stage to visualize ("flatpose" or "poselifting")
             source_name: Name for this visualization session
 
@@ -297,7 +297,7 @@ class PoseVisualizer(ABC):
         poses_tensor = data_loader.get_tensor(stage)
 
         if poses_tensor is None:
-            raise ValueError(f"No data found for stage '{stage}' in DataLoader")
+            raise ValueError(f"No data found for stage '{stage}' in ProcessManager")
 
         print(f"Visualizing {stage} data with shape: {poses_tensor.shape}")
 

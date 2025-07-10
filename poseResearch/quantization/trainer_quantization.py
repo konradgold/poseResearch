@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 import torch
-from torch.utils.data import DataLoader
+from utils.process_manager import ProcessManager
 from tqdm import tqdm
 from poseResearch.quantization.base_quantizer import VQVAEBase
 
@@ -12,9 +12,9 @@ class VQVAETrainer:
     def __init__(
         self,
         model: VQVAEBase,
-        train_loader: DataLoader,
+        train_loader: ProcessManager,
         optimizer: torch.optim.Optimizer,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: Optional[ProcessManager] = None,
         scheduler: Optional[Any] = None,
         device: Optional[torch.device] = None,
         config_path: Optional[str] = None,
@@ -24,7 +24,9 @@ class VQVAETrainer:
         self.val_loader = val_loader
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device or torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        )
         self.model.to(self.device)
 
         self.config = self._load_config(config_path) if config_path else {}
@@ -68,7 +70,9 @@ class VQVAETrainer:
         print(f"==> Train Epoch {epoch} - Avg Loss: {avg_loss:.4f}")
 
     def _eval_epoch(self, epoch: int):
-        assert self.val_loader is not None, "Validation loader must be provided for evaluation."
+        assert (
+            self.val_loader is not None
+        ), "Validation loader must be provided for evaluation."
         print(f"Validating Epoch {epoch}...")
         self.model.eval()
         total_loss = 0.0
@@ -84,9 +88,14 @@ class VQVAETrainer:
 
     def _save_checkpoint(self, epoch: int):
         path = self.checkpoint_dir / f"vqvae_epoch_{epoch}.pt"
-        torch.save({
-            "model_state_dict": self.model.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict() if self.optimizer else None,
-            "epoch": epoch,
-        }, path)
+        torch.save(
+            {
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": (
+                    self.optimizer.state_dict() if self.optimizer else None
+                ),
+                "epoch": epoch,
+            },
+            path,
+        )
         print(f"Checkpoint saved to {path}")

@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Example showing how to visualize poses using DataLoader and the new visualization system
+Example showing how to visualize poses using ProcessManager and the new visualization system
 """
 
-from utils.data_loader import DataLoader
+from utils.process_manager import ProcessManager
 from visualizer.pose_3d_visualizer import Pose3DVisualizer
 from visualizer.pose_2d_visualizer import Pose2DVisualizer
 
 
 def visualize_2d_poses():
-    data_loader = DataLoader()
+    data_loader = ProcessManager()
     data_loader.load_json("dataloader/results_flatpose.json")
 
     visualizer_2d = Pose2DVisualizer(
-        skeleton_type="coco",
+        skeleton_type="anatomical",
         output_dir="./pose_video_output_2d",
         create_videos=True,
         video_fps=30,
@@ -23,11 +23,11 @@ def visualize_2d_poses():
 
 
 def visualize_3d_poses():
-    data_loader = DataLoader()
+    data_loader = ProcessManager()
     data_loader.load_json("dataloader/results_poselifting.json")
 
     visualizer_3d = Pose3DVisualizer(
-        skeleton_type="coco",
+        skeleton_type="anatomical",
         output_dir="./pose_video_output_3d",
         create_videos=True,
         video_fps=30,
@@ -37,5 +37,5 @@ def visualize_3d_poses():
 
 
 if __name__ == "__main__":
-    # visualize_2d_poses()
+    visualize_2d_poses()
     visualize_3d_poses()
