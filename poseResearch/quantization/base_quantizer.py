@@ -1,12 +1,11 @@
-
-
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 from torch.optim import Optimizer
 import torch
 
+
 class VQVAEBase(torch.nn.Module, ABC):
-    
+
     @abstractmethod
     def forward(self, x: torch.Tensor) -> Dict[str, Any]:
         """
@@ -25,10 +24,7 @@ class VQVAEBase(torch.nn.Module, ABC):
 
     @abstractmethod
     def train_step(
-        self, 
-        batch: torch.Tensor, 
-        optimizer: Optimizer, 
-        scheduler: Any = None
+        self, batch: torch.Tensor, optimizer: Optimizer, scheduler: Any = None
     ) -> Dict[str, float]:
         """
         Performs a single training step.
