@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Lean example: DataLoader manages all input data, pipeline just runs stages.
+Lean example: ProcessManager manages all input data, pipeline just runs stages.
 """
 
 import torch
-from utils.data_loader import DataLoader
+from utils.process_manager import ProcessManager
 from pipeline import EstimationPipe
 from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.preprocess.no_preprocess import NoPreprocess
@@ -24,7 +24,7 @@ class DummyPreprocessor(PreprocessEstimation):
     def identifier(self):
         return "preprocessor"
 
-    def _forward(self, data):
+    def _forward(self, data): # type: ignore
         return torch.randn(data.size(0), 224, 224, 3)
 
 
@@ -58,7 +58,7 @@ def example_1_full_pipeline():
     """Full pipeline from raw frames."""
     print("=== Full Pipeline ===")
 
-    data_loader = DataLoader(save_path="results.json")
+    data_loader = ProcessManager(save_path="results.json")
     pipeline = EstimationPipe(
         DummyPreprocessor(), Dummy2DPose(), Dummy3DPose(), data_loader
     )
@@ -76,7 +76,7 @@ def example_2_from_2d_poses():
     """Load 2D poses and auto-continue from 3D lifting."""
     print("\n=== Auto-start from 2D Poses ===")
 
-    data_loader = DataLoader()
+    data_loader = ProcessManager()
     data_loader.load_json("results.json")  # Has 2D poses
 
     # Pipeline auto-detects and starts from poselifting
@@ -93,7 +93,7 @@ def example_3_from_3d_poses():
     """Load 3D poses and auto-continue"""
     print("\n=== 3D Poses Input ===")
 
-    data_loader = DataLoader()
+    data_loader = ProcessManager()
     data_loader.load_json("dataloader/results_3d.json")
 
     # Pipeline auto-detects and starts from poselifting
@@ -109,7 +109,7 @@ def example_4_individual_stage():
     """Use dataloader's run_stage method directly."""
     print("\n=== Individual Stage Usage ===")
 
-    data_loader = DataLoader()
+    data_loader = ProcessManager()
 
     # Add 2D poses
     poses_2d = torch.randn(2, 8, 17, 3)

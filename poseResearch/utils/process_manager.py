@@ -8,10 +8,10 @@ from typing import Dict, Any, Optional, Union, Literal
 from pathlib import Path
 
 # Define the allowed stage names as a type
-StageName = Literal["input", "preprocessor", "flatpose", "poselifting", "future"]
+StageName = Literal["input", "preprocessor", "flatpose", "poselifting", "future", "quantization"]
 
 
-class DataLoader:
+class ProcessManager:
     """
     Minimal dataloader for pipeline stages.
     Stores intermediate results, manages stage flow, and provides input data.
@@ -24,18 +24,21 @@ class DataLoader:
     def set_input(self, input_data: torch.Tensor) -> None:
         """Set the initial input data (e.g., raw video frames)."""
         # Store input data in the same store as stage outputs
+        self.set_input_for_stage(input_data, stage="input")
+    
+    def set_input_for_stage(self, input_data: torch.Tensor, stage: StageName):
         if isinstance(input_data, torch.Tensor):
             data = input_data.detach().cpu().numpy()
         else:
             data = np.array(input_data)
 
-        self.data_store["input"] = {
+        self.data_store[stage] = {
             "data": data.tolist(),
             "shape": list(data.shape),
-            "config": {"stage_name": "input", "description": "Raw input data"},
+            "config": {"stage_name": stage, "description": "Raw input data"},
         }
 
-    def video_to_tensor(
+    def _video_to_tensor(
         self, video_path: str, num_frames: Optional[int] = None
     ) -> torch.Tensor:
         """Convert a video to a tensor in BCHW format, using batches for memory efficiency."""
@@ -94,7 +97,11 @@ class DataLoader:
             raise ValueError(
                 f"File {video_path} does not have a valid video extension: {ext}"
             )
+<<<<<<< HEAD:poseResearch/utils/data_loader.py
         video_frames = self.video_to_tensor(str(resolved_video_path), num_frames)
+=======
+        video_frames = self._video_to_tensor(video_path, num_frames)
+>>>>>>> konrad/vqvae-first-draft:poseResearch/utils/process_manager.py
         self.set_input(video_frames)
 
     def get_current_input(self) -> Optional[torch.Tensor]:
@@ -180,7 +187,7 @@ class DataLoader:
         input_stages: dict[StageName, StageName] = {
             "flatpose": "preprocessor",
             "poselifting": "flatpose",
-            "future": "poselifting",
+            "quantization": "poselifting",
         }
         input_stage: Optional[StageName] = input_stages.get(stage)
         if input_stage is None:

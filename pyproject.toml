@@ -20,6 +20,7 @@ dependencies = [
     "torch>=2.5.1",
     "transformers>=4.46.3",
     "ultralytics>=8.3.146",
+    "wandb>=0.21.0",
 ]
 
 [build-system]
