@@ -24,7 +24,7 @@ class DummyPreprocessor(PreprocessEstimation):
     def identifier(self):
         return "preprocessor"
 
-    def _forward(self, data): # type: ignore
+    def _forward(self, data):  # type: ignore
         return torch.randn(data.size(0), 224, 224, 3)
 
 
@@ -125,7 +125,7 @@ def example_5_from_video():
     """Load video and run pipeline."""
     print("\n=== Video Input ===")
 
-    data_loader = DataLoader(save_path="results-from-video.json")
+    data_loader = ProcessManager(save_path="results-from-video.json")
     data_loader.set_input_from_video("fem1_t1_preview.mp4", num_frames=120)
 
     print("Data loading complete.")
@@ -145,7 +145,7 @@ def example6_motionbert_from_2d_poses():
     """Load 2D poses and run MotionBERT."""
     print("\n=== MotionBERT from 2D Poses ===")
 
-    data_loader = DataLoader()
+    data_loader = ProcessManager()
     data_loader.load_json("poseResearch/dataloader/results_flatpose.json")
 
     pipeline = EstimationPipe(
