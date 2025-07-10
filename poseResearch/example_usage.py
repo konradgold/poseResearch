@@ -122,13 +122,14 @@ def example_4_individual_stage():
 
 
 def example_5_from_video():
-    """Load video and run pipeline."""
-    print("\n=== Video Input ===")
+    """Load video and run pipeline with batch processing."""
+    print("\n=== Video Input with Batch Processing ===")
 
-    data_loader = ProcessManager(save_path="results-from-video.json")
+    # Use batch processing to handle large videos
+    data_loader = ProcessManager(save_path="results-from-video.json", batch_size=32)
     data_loader.set_input_from_video("fem1_t1_preview.mp4", num_frames=120)
 
-    print("Data loading complete.")
+    print("Video prepared for batch processing.")
 
     pipeline = EstimationPipe(
         NoPreprocess(),
@@ -139,6 +140,7 @@ def example_5_from_video():
 
     result = pipeline.forward()
     print(f"Video result: {result.shape}")
+    print(f"Processed {pipeline.processed_batches} batches")
 
 
 def example6_motionbert_from_2d_poses():
@@ -159,10 +161,36 @@ def example6_motionbert_from_2d_poses():
     print(f"MotionBERT result: {result.shape}")
 
 
+def example7_large_video_batch_processing():
+    """Process a large video with small batch sizes to avoid memory issues."""
+    print("\n=== Large Video Batch Processing ===")
+
+    # Use smaller batch size for very large videos or limited memory
+    data_loader = ProcessManager(save_path="results-large-video.json", batch_size=16)
+    data_loader.set_input_from_video("malemonologue2_t2-cam01.mp4", num_frames=200)
+
+    print(f"Video prepared for batch processing: {data_loader.total_frames} frames")
+    print(f"Batch size: {data_loader.batch_size}")
+
+    pipeline = EstimationPipe(
+        NoPreprocess(),
+        YOLOEstimation("yolo11s-pose.pt"),
+        MotionBERTEstimation(),
+        data_loader,
+    )
+
+    result = pipeline.forward()
+    print(f"Final result shape: {result.shape}")
+    print(f"Total batches processed: {pipeline.processed_batches}")
+    print(f"Frames per batch: {data_loader.batch_size}")
+    print(f"Memory usage optimized for large videos!")
+
+
 if __name__ == "__main__":
     # example_1_full_pipeline()
     # example_2_from_2d_poses()
     # example_3_from_3d_poses()
     # example_4_individual_stage()
-    example_5_from_video()
+    # example_5_from_video()
     # example6_motionbert_from_2d_poses()
+    example7_large_video_batch_processing()
