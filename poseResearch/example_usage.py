@@ -12,6 +12,7 @@ from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose2D.yolo_estimation import YOLOEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
+from estimation.preprocess.yolo_bb_preprocess import YOLOBoundingBoxPreprocess
 
 
 # Minimal dummy estimators
@@ -22,7 +23,7 @@ class DummyPreprocessor(PreprocessEstimation):
 
     @property
     def identifier(self):
-        return "preprocessor"
+        return "DummyPreprocessor"
 
     def _forward(self, data):  # type: ignore
         return torch.randn(data.size(0), 224, 224, 3)
@@ -35,7 +36,7 @@ class Dummy2DPose(TwoDPoseEstimation):
 
     @property
     def identifier(self):
-        return "flatpose"
+        return "Dummy2DPose"
 
     def _forward(self, images):
         return torch.randn(2, images.size(0), 17, 3)
@@ -48,7 +49,7 @@ class Dummy3DPose(ThreeDPoseEstimation):
 
     @property
     def identifier(self):
-        return "poselifting"
+        return "Dummy3DPose"
 
     def _forward(self, poses_2d):
         return poses_2d
@@ -159,10 +160,29 @@ def example6_motionbert_from_2d_poses():
     print(f"MotionBERT result: {result.shape}")
 
 
+def example_7_yolo_bb_preprocess():
+    """Run YOLO bounding box preprocess."""
+    print("=== YOLO Bounding Box Preprocess ===")
+
+    data_loader = ProcessManager(save_path="results-yolo-bb-preprocess.json")
+    data_loader.set_input_from_video("fem1_t1_preview.mp4")
+
+    pipeline = EstimationPipe(
+        YOLOBoundingBoxPreprocess("yolo11s-pose.pt"),
+        Dummy2DPose(),
+        Dummy3DPose(),
+        data_loader,
+    )
+
+    result = pipeline.forward()
+    print(f"YOLO Bounding Box Preprocess result: {result.shape}")
+
+
 if __name__ == "__main__":
     # example_1_full_pipeline()
     # example_2_from_2d_poses()
     # example_3_from_3d_poses()
     # example_4_individual_stage()
-    example_5_from_video()
+    # example_5_from_video()
     # example6_motionbert_from_2d_poses()
+    example_7_yolo_bb_preprocess()

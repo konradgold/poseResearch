@@ -5,7 +5,7 @@ See https://docs.astral.sh/uv/guides/projects/ for any further information.
 # Run this project
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 Examples from [poseResearch/example_usage.py](poseResearch/example_usage.py) now work out of the box if they do not use the cloned subrepositories. If you need them use uv to create virtual environment:
