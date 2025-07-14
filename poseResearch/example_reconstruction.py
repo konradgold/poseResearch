@@ -24,8 +24,11 @@ def test_pose_reconstruction(save: bool = True, visualize: bool = False, lifted_
 
         out = model.generate(torch.Tensor(quantized_chunk).unsqueeze(0).long(), max_new_tokens)  # Add batch dimension and convert to long
         #print(f"Generated output shape: {out.size()}")
-        out: List = out.squeeze().tolist()  # Convert to list for easier printing
-        #print(f"Output shape: {len(out)}")
+        out: List[int] = out.squeeze().tolist()  # Convert to list for easier printing
+        try:
+            print(f"Correct tokens: {(torch.tensor(quantized[i+1]) == torch.tensor(out[len(quantized_chunk):len(quantized_chunk) + len(quantized[i+1])])).float().mean()}")
+        except Exception as e:
+            print(f"Error calculating correct tokens: {e}")
         #print(f"Output: {out}")
 
         #pre_gen_decoded = quantizer.decode([quantized_chunk])
@@ -66,10 +69,10 @@ def test_pose_reconstruction(save: bool = True, visualize: bool = False, lifted_
 
     if save: 
     # Convert all poses to a list and create the required format
-        poses_list = [pose.tolist() for pose in all_poses]
+        poses_list = [pose.tolist()[0] for pose in all_poses if not (pose == 0.0).all()]
         output_data = {
             "poselifting": {
-            "data": poses_list
+            "data": [poses_list]
             }
         }
         

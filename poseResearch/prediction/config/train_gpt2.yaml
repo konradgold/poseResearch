@@ -5,7 +5,7 @@ wandb_run_name: 'gpt2-train'
 # these make the total batch size be 7.5k
 # 12 batch size * 128 block size * 5 gradaccum * 1 GPUs = 7.680
 batch_size: 12
-block_size: 128
+block_size: 64
 gradient_accumulation_steps: 2
 
 # model
