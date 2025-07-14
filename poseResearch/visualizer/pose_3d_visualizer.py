@@ -11,7 +11,7 @@ class Pose3DVisualizer(PoseVisualizer):
 
     def __init__(
         self,
-        visualize_every_n_frames: int = 1,
+        visualize_every_n_batches: int = 1,
         save_plots: bool = True,
         output_dir: str = "./visualizations",
         show_labels: bool = False,
@@ -27,7 +27,7 @@ class Pose3DVisualizer(PoseVisualizer):
             output_dir=output_dir, create_videos=create_videos, video_fps=video_fps
         )
 
-        self.visualize_every_n_frames = visualize_every_n_frames
+        self.visualize_every_n_batches = visualize_every_n_batches
         self.save_plots = save_plots
         self.show_labels = show_labels
         self.max_people = max_people
@@ -57,11 +57,11 @@ class Pose3DVisualizer(PoseVisualizer):
         self.skeleton_colors = self.skeleton_config.get_skeleton_colors()
         self.num_keypoints = self.skeleton_config.get_num_keypoints()
 
-    def should_visualize(self, stage_name: str, frame_idx: int) -> bool:
-        """Only visualize poselifting stages, every N frames"""
+    def should_visualize(self, stage_name: str, batch_idx: int) -> bool:
+        """Only visualize poselifting stages, every N batches"""
         return (
             stage_name == "poselifting"
-            and frame_idx % self.visualize_every_n_frames == 0
+            and batch_idx % self.visualize_every_n_batches == 0
         )
 
     def compute_fixed_axis_limits(self, all_poses: torch.Tensor):
@@ -205,11 +205,11 @@ class Pose3DVisualizer(PoseVisualizer):
         self, poses_3d: torch.Tensor, frame_info: dict, stage_name: str
     ):
         """Visualize 3D poses from poselifting stage with professional styling"""
-        frame_idx = frame_info["frame_idx"]
+        frame_idx = frame_info["batch_idx"]
 
         # Convert to numpy for visualization
         poses_np = poses_3d.detach().cpu().numpy()
-        num_people, num_keypoints, _ = poses_np.shape
+        batch_size, num_frames, num_keypoints, _ = poses_np.shape
 
         # Validate input dimensions
         if num_keypoints != self.num_keypoints:
@@ -219,7 +219,7 @@ class Pose3DVisualizer(PoseVisualizer):
 
         # Create figure with subplots for multiple people
         fig = plt.figure(figsize=(8 * min(self.max_people, 2), 9))
-        num_people = min(num_people, self.max_people)
+        num_people = min(batch_size, self.max_people)
 
         if num_people == 0:
             plt.text(
@@ -240,8 +240,10 @@ class Pose3DVisualizer(PoseVisualizer):
                     subplot_rows, subplot_cols, person_idx + 1, projection="3d"
                 )
 
-                if person_idx < num_people:
-                    keypoints = poses_np[person_idx]  # Shape: (num_keypoints, 3)
+                if person_idx < num_people and num_frames > 0:
+                    keypoints = poses_np[
+                        person_idx, 0
+                    ]  # First frame, shape: (num_keypoints, 3)
                     title = (
                         f"Person {person_idx + 1} - {stage_name} - Frame {frame_idx}"
                     )
@@ -289,8 +291,8 @@ class Pose3DVisualizer(PoseVisualizer):
                 "SkeletonConfig", ""
             ).lower()
 
-            # Use frame_idx for sequential video frame naming
-            filename = f"{self.output_dir}/{stage_name}_frame_{frame_idx:04d}_3d_{skeleton_name}.png"
+            # Use batch_idx for sequential video frame naming
+            filename = f"{self.output_dir}/{stage_name}_batch_{frame_idx:04d}_3d_{skeleton_name}.png"
 
             plt.savefig(filename, dpi=150, bbox_inches="tight")
             plt.close()
