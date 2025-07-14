@@ -12,7 +12,7 @@ class Pose2DVisualizer(PoseVisualizer):
 
     def __init__(
         self,
-        visualize_every_n_batches: int = 1,
+        visualize_every_n_frames: int = 1,
         save_plots: bool = True,
         output_dir: str = "./visualizations",
         show_labels: bool = False,
@@ -27,7 +27,7 @@ class Pose2DVisualizer(PoseVisualizer):
             output_dir=output_dir, create_videos=create_videos, video_fps=video_fps
         )
 
-        self.visualize_every_n_batches = visualize_every_n_batches
+        self.visualize_every_n_frames = visualize_every_n_frames
         self.save_plots = save_plots
         self.show_labels = show_labels
         self.max_people = max_people
@@ -56,10 +56,10 @@ class Pose2DVisualizer(PoseVisualizer):
         self.skeleton_colors = self.skeleton_config.get_skeleton_colors()
         self.num_keypoints = self.skeleton_config.get_num_keypoints()
 
-    def should_visualize(self, stage_name: str, batch_idx: int) -> bool:
-        """Only visualize flatpose stages, every N batches"""
+    def should_visualize(self, stage_name: str, frame_idx: int) -> bool:
+        """Only visualize flatpose stages, every N frames"""
         return (
-            stage_name == "flatpose" and batch_idx % self.visualize_every_n_batches == 0
+            stage_name == "flatpose" and frame_idx % self.visualize_every_n_frames == 0
         )
 
     def plot_single_pose_2d(self, ax, keypoints, person_id=0, title="", image=None):
@@ -169,14 +169,14 @@ class Pose2DVisualizer(PoseVisualizer):
         ax.set_ylim(-4, 4)
 
     def visualize_2d_poses(
-        self, poses_2d: torch.Tensor, batch_info: dict, stage_name: str
+        self, poses_2d: torch.Tensor, frame_info: dict, stage_name: str
     ):
         """Visualize 2D poses from flatpose stage with sophisticated styling"""
-        batch_idx = batch_info["batch_idx"]
+        frame_idx = frame_info["frame_idx"]
 
         # Convert to numpy for visualization
         poses_np = poses_2d.detach().cpu().numpy()
-        batch_size, num_frames, num_keypoints, _ = poses_np.shape
+        num_people, num_keypoints, _ = poses_np.shape
 
         # Validate input dimensions
         if num_keypoints != self.num_keypoints:
@@ -186,13 +186,13 @@ class Pose2DVisualizer(PoseVisualizer):
 
         # Create figure with subplots for multiple people
         fig = plt.figure(figsize=(8 * min(self.max_people, 2), 8))
-        num_people = min(batch_size, self.max_people)
+        num_people = min(num_people, self.max_people)
 
         if num_people == 0:
             plt.text(
                 0.5,
                 0.5,
-                f"No poses detected in batch {batch_idx}",
+                f"No poses detected in frame {frame_idx}",
                 ha="center",
                 va="center",
                 transform=fig.transFigure,
@@ -205,12 +205,10 @@ class Pose2DVisualizer(PoseVisualizer):
             for person_idx in range(min(num_people, 4)):  # Limit to 4 people max
                 ax = fig.add_subplot(subplot_rows, subplot_cols, person_idx + 1)
 
-                if person_idx < num_people and num_frames > 0:
-                    keypoints = poses_np[
-                        person_idx, 0
-                    ]  # First frame, shape: (num_keypoints, 2)
+                if person_idx < num_people:
+                    keypoints = poses_np[person_idx]  # Shape: (num_keypoints, 2)
                     title = (
-                        f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}"
+                        f"Person {person_idx + 1} - {stage_name} - Frame {frame_idx}"
                     )
                     self.plot_single_pose_2d(
                         ax, keypoints, person_id=person_idx, title=title
@@ -226,7 +224,7 @@ class Pose2DVisualizer(PoseVisualizer):
                         transform=ax.transAxes,
                     )
                     ax.set_title(
-                        f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}",
+                        f"Person {person_idx + 1} - {stage_name} - Frame {frame_idx}",
                         fontsize=12,
                         fontweight="bold",
                     )
@@ -261,9 +259,8 @@ class Pose2DVisualizer(PoseVisualizer):
                 "SkeletonConfig", ""
             ).lower()
 
-            # Use frame_id if available for sequential video frame naming (like 3D visualizer)
-            frame_id = batch_info.get("frame_id", batch_idx)
-            filename = f"{self.output_dir}/{stage_name}_frame_{frame_id:04d}_2d_{skeleton_name}.png"
+            # Use frame_idx for sequential video frame naming
+            filename = f"{self.output_dir}/{stage_name}_frame_{frame_idx:04d}_2d_{skeleton_name}.png"
 
             plt.savefig(filename, dpi=150, bbox_inches="tight")
             plt.close()
@@ -281,26 +278,24 @@ class Pose2DVisualizer(PoseVisualizer):
         poses_2d: torch.Tensor,
         background_image: np.ndarray,
         person_idx: int = 0,
-        frame_idx: int = 0,
     ):
         """
         Create a pose overlay on a background image
 
         Args:
-            poses_2d: Tensor of shape (batch_size, frames, num_keypoints, 2)
+            poses_2d: Tensor of shape (num_people, num_keypoints, 2)
             background_image: Background image as numpy array
             person_idx: Which person to visualize
-            frame_idx: Which frame to visualize
 
         Returns:
             Image with pose overlay
         """
         poses_np = poses_2d.detach().cpu().numpy()
 
-        if person_idx >= poses_np.shape[0] or frame_idx >= poses_np.shape[1]:
+        if person_idx >= poses_np.shape[0]:
             return background_image
 
-        keypoints = poses_np[person_idx, frame_idx]  # Shape: (num_keypoints, 2)
+        keypoints = poses_np[person_idx]  # Shape: (num_keypoints, 2)
 
         # Validate and pad/truncate keypoints if needed
         if keypoints.shape[0] != self.num_keypoints:
