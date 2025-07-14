@@ -15,8 +15,6 @@ class EstimationPipe:
         flatpose: TwoDPoseEstimation,
         poselifting: ThreeDPoseEstimation,
         data_loader: ProcessManager,
-        visualizer_2d: Optional[PoseVisualizer] = None,
-        visualizer_3d: Optional[PoseVisualizer] = None,
     ) -> None:
         self.pipe_classes: List[Tuple[StageName, Estimation]] = [
             ("preprocessor", preprocessor),
@@ -24,8 +22,6 @@ class EstimationPipe:
             ("poselifting", poselifting),
         ]
         self.process_manager: ProcessManager = data_loader
-        self.visualizer_2d: Optional[PoseVisualizer] = visualizer_2d
-        self.visualizer_3d: Optional[PoseVisualizer] = visualizer_3d
         self.processed_batches: int = 0
 
     def forward(self) -> torch.Tensor:
@@ -101,37 +97,6 @@ class EstimationPipe:
                     if stage_name not in stage_accumulator:
                         stage_accumulator[stage_name] = []
                     stage_accumulator[stage_name].append(current_data.detach().cpu())
-
-                # Optional visualization for batch
-                if stage_name == "flatpose" and self.visualizer_2d:
-                    if self.visualizer_2d.should_visualize(stage_name, batch_idx):
-                        batch_info = {
-                            "batch_idx": batch_idx,
-                            "source": "batch_processing",
-                            "num_people": current_data.shape[0],
-                            "num_frames": current_data.shape[1],
-                            "frame_start": self.process_manager.processed_frames,
-                            "frame_end": self.process_manager.processed_frames
-                            + current_batch_size,
-                        }
-                        self.visualizer_2d.visualize_2d_poses(
-                            current_data, batch_info, stage_name
-                        )
-
-                elif stage_name == "poselifting" and self.visualizer_3d:
-                    if self.visualizer_3d.should_visualize(stage_name, batch_idx):
-                        batch_info = {
-                            "batch_idx": batch_idx,
-                            "source": "batch_processing",
-                            "num_people": current_data.shape[0],
-                            "num_frames": current_data.shape[1],
-                            "frame_start": self.process_manager.processed_frames,
-                            "frame_end": self.process_manager.processed_frames
-                            + current_batch_size,
-                        }
-                        self.visualizer_3d.visualize_3d_poses(
-                            current_data, batch_info, stage_name
-                        )
 
             # Update processed frames counter
             self.process_manager.processed_frames += current_batch_size
