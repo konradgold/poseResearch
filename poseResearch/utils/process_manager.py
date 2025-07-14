@@ -116,7 +116,7 @@ class ProcessManager:
         return frames_tensor
 
     def set_input_from_video(
-        self, video_path: str | Path, num_frames: Optional[int] = None
+        self, video_path: Union[str, Path], num_frames: Optional[int] = None
     ) -> None:
         """Set the input data from a video file."""
         resolved_video_path = Path(video_path)
