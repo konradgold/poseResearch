@@ -7,6 +7,7 @@
         {
             "name": "Python Debugger: Current File with Arguments",
             "type": "debugpy",
+            "justMyCode": false,
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
@@ -14,6 +15,14 @@
                 "--ground_truth", "/Users/konradgoldenbaum/Downloads/cam-016",
                 "--media", "/Users/konradgoldenbaum/Downloads/interactive4_t3-cam16.mp4"
             ]
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
         }
     ]
 }

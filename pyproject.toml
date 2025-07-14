@@ -28,7 +28,6 @@ requires = ["setuptools>=80.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["MotionBERT"]
 
 [tool.black]
 line-length = 88
@@ -76,5 +75,4 @@ exclude = [
 
 [tool.uv.workspace]
 members = [
-    "MotionBERT",
 ]

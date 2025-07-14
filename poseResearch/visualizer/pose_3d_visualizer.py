@@ -1,3 +1,4 @@
+from typing import Optional
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +17,7 @@ class Pose3DVisualizer(PoseVisualizer):
         output_dir: str = "./visualizations",
         show_labels: bool = False,
         max_people: int = 2,
-        skeleton_config: SkeletonConfig = None,
+        skeleton_config: Optional[SkeletonConfig] = None,
         skeleton_type: str = "anatomical",
         create_videos: bool = False,
         video_fps: int = 15,

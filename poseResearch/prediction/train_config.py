@@ -74,7 +74,10 @@ class Config:
             if yaml_config is not None:  # Handle empty yaml file
                 for key, value in yaml_config.items():
                     if hasattr(config, key):
-                        setattr(config, key, value)
+                        # Convert value to the same type as the default value
+                        default_value = getattr(config, key)
+                        converted_value = type(default_value)(value)
+                        setattr(config, key, converted_value)
             return config
         except FileNotFoundError:
             print(f"Config file {yaml_path} not found. Using default values.")

@@ -6,7 +6,7 @@ wandb_run_name: 'gpt2-train'
 # 12 batch size * 128 block size * 5 gradaccum * 1 GPUs = 7.680
 batch_size: 12
 block_size: 128
-gradient_accumulation_steps: 5
+gradient_accumulation_steps: 2
 
 # model
 n_layer: 3
@@ -14,7 +14,7 @@ n_head: 4
 n_embd: 256
 dropout: 0.0 # for pretraining 0 is good, for finetuning try 0.1+
 bias: False
-vocab_size: 2048
+vocab_size: 2049 # 2048 + 1 for the eot token
 
 # this makes total number of tokens be 300B
 max_iters: 600000
@@ -45,6 +45,6 @@ dataset: 'overfit'
 
  # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
 # DDP settings
-backend = 'nccl' # 'nccl', 'gloo', etc.
+backend: 'nccl' # 'nccl', 'gloo', etc.
 # system
 compile: False
