@@ -26,7 +26,7 @@ def load_json(path: str) -> List:
     return data_list
 
 
-def process_data(data: List, tokenizer: str, fit: bool) -> torch.Tensor:
+def process_data(data: List) -> torch.Tensor:
     """
     Process the loaded JSON data and return a torch.Tensor of shape (N, M).
 
@@ -54,19 +54,7 @@ def process_data(data: List, tokenizer: str, fit: bool) -> torch.Tensor:
         data[i] = poses
     prepared_data = torch.cat(data, dim=0)
 
-    if fit:
-        fast_tokenizer = FASTQuantizer()
-        fast_tokenizer.fit_tokenizer(prepared_data)
-        # Your tokenization logic here
-        result_tensor = fast_tokenizer.quantize(prepared_data)
-        fast_tokenizer.save_tokenizer(tokenizer)
-    else:
-        fast_tokenizer = FASTQuantizer(tokenizer)
-        result_tensor = fast_tokenizer.quantize(prepared_data)
-        # Your non-tokenization logic here
-
-    print(f"Nr. Tokens: {fast_tokenizer.vocab_size}")
-    return result_tensor
+    return prepared_data
 
 
 def save_tensor(tensor: torch.Tensor, output_path: str) -> None:  # type: ignore
@@ -95,15 +83,33 @@ def main():
 
     # Process data
     print(f"Processing data (fit tokenizer={args.fit})...")
-    result_tensor = process_data(data, args.tokenizer, fit=args.fit)
 
-    # Save tensor
+    processed_data = process_data(data)
+    if args.fit:
+        fast_tokenizer = FASTQuantizer()
+        fast_tokenizer.fit_tokenizer(processed_data)
+        # Your tokenization logic here
+        result_tensor = fast_tokenizer.quantize(processed_data)
+        fast_tokenizer.save_tokenizer(args.tokenizer)
+    else:
+        fast_tokenizer = FASTQuantizer(args.tokenizer)
+        result_tensor = fast_tokenizer.quantize(processed_data)
+        # Your non-tokenization logic here
+
+    print(f"Nr. Tokens: {fast_tokenizer.vocab_size}")
+
+    # Introduce eot token:
+    for i, x in enumerate(result_tensor):
+        x.append(fast_tokenizer.tokenizer.bpe_tokenizer.eos_token_id)
+        result_tensor[i] = x
 
     result_tensor = numpy.concatenate([x for x in result_tensor])
     arr = numpy.memmap(
         args.output_path, dtype=numpy.uint16, mode="w+", shape=(len(result_tensor),)
     )
-    arr[:] = result_tensor[:]
+    arr[:] = result_tensor
+    print(arr.min(), arr.max(), arr.mean())
+    arr.flush()
 
     print("Processing complete!")
 

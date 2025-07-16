@@ -1,30 +1,42 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 import warnings
+import numpy
 import torch
 from transformers import AutoProcessor
 from poseResearch.quantization.base_quantizer import VQVAEBase
 
 
 class FASTQuantizer(VQVAEBase):
-    def __init__(self, pretrained: str = "physical-intelligence/fast") -> None:
+    def __init__(self, pretrained: Optional[str] = None) -> None:
         self.tokenizer = AutoProcessor.from_pretrained(
-            pretrained, trust_remote_code=True
+            "physical-intelligence/fast", trust_remote_code=True
         )
+        if pretrained:
+            self.tokenizer.from_pretrained(pretrained)
+        else:
+            self.tokenizer.bpe_tokenizer.add_special_tokens({"eos_token": "<EOS>"})
+
+    def normalize(self, x: torch.Tensor) -> torch.Tensor:
+        self.min_vals = torch.amin(x, dim=(1, 2), keepdim=True)
+        self.max_vals = torch.amax(x, dim=(1, 2), keepdim=True)
+        dist = self.max_vals - self.min_vals
+        dist[dist == 0] = 1e-5  # Avoid division by zero
+        return (x - self.min_vals) / dist
+
+    def denormalize(self, x: torch.Tensor) -> torch.Tensor:
+        return x * (self.max_vals - self.min_vals) + self.min_vals
 
     def fit_tokenizer(self, data: torch.Tensor) -> None:
-        normalized_tensor: torch.Tensor = self._preprocess_input(data)
+        normalized_tensor: numpy.ndarray = self._preprocess_input(data)
         # Replace NaN values with zeros and create block list
-        normalized_tensor = torch.nan_to_num(normalized_tensor, nan=0.0)
-        block_list = [
-            normalized_tensor[i].detach().numpy()
-            for i in range(normalized_tensor.shape[0])
-        ]
+        normalized_tensor = numpy.nan_to_num(normalized_tensor, nan=0.0)
+        block_list = [normalized_tensor[i] for i in range(normalized_tensor.shape[0])]
 
         self.tokenizer.fit(block_list)
 
     def _preprocess_input(
         self, input_tensor: torch.Tensor, action_len: int = 8
-    ) -> torch.Tensor:
+    ) -> numpy.ndarray:
         """
         Preprocesses the input tensor to match the expected input format of the tokenizer.
         """
@@ -40,8 +52,8 @@ class FASTQuantizer(VQVAEBase):
                 inputs = torch.nn.functional.pad(inputs, (0, 0, 0, pad_size))
             # Reshape into chunks of action_len
             inputs = inputs.view(-1, action_len, inputs.size(-1))
-            normalized_tensor = (inputs - inputs.mean(dim=(1, 2), keepdims=True)) / inputs.std(dim=(1, 2), keepdims=True)  # type: ignore
-            return normalized_tensor
+            normalized_tensor = self.normalize(inputs)
+            return normalized_tensor.numpy()
         else:
             raise ValueError(
                 f"Expected input tensor to have 3 dimensions (B, 17, 3), got {input_tensor.size()}. Please check the input format."
@@ -61,17 +73,32 @@ class FASTQuantizer(VQVAEBase):
             "loss": torch.mean(preprocessed - reshaped_decoded),  # counter padding
         }
 
-    def quantize(self, input_tensor: torch.Tensor) -> torch.Tensor:
+    def quantize(self, input_tensor: torch.Tensor) -> List[List[int]]:
         """
         Quantizes the input text using the fitted tokenizer.
         """
         if input_tensor.size(-1) == 17 * 3:
-            inputs = input_tensor
+            inputs = input_tensor.numpy()
         else:
             inputs = self._preprocess_input(input_tensor)
-        return self.tokenizer(inputs)
 
-    def decode(self, input_ids: torch.Tensor) -> torch.Tensor:
+        out = self.tokenizer(inputs)
+
+        return out
+
+    def shape_back(self, input_ids: torch.Tensor) -> torch.Tensor:
+        """
+        Reshapes the input_ids back to the original shape.
+        """
+        # Assuming input_ids is a list of lists, where each inner list is a sequence of tokens
+        if isinstance(input_ids, numpy.ndarray):
+            input_ids = torch.tensor(input_ids)
+        input_ids = self.denormalize(input_ids).unsqueeze(0)
+        reshaped = input_ids.view(-1, 3, 17)
+        reshaped = reshaped.permute(0, 2, 1)
+        return reshaped  # Add batch dimension back
+
+    def decode(self, input_ids: List[List[int]]) -> torch.Tensor:
         """
         Decodes the input_ids back to the original text.
         """

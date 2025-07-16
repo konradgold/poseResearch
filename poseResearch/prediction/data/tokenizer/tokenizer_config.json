@@ -1,9 +1,19 @@
 {
-  "added_tokens_decoder": {},
+  "added_tokens_decoder": {
+    "2048": {
+      "content": "<EOS>",
+      "lstrip": false,
+      "normalized": false,
+      "rstrip": false,
+      "single_word": false,
+      "special": true
+    }
+  },
   "auto_map": {
     "AutoProcessor": "physical-intelligence/fast--processing_action_tokenizer.UniversalActionProcessor"
   },
   "clean_up_tokenization_spaces": true,
+  "eos_token": "<EOS>",
   "extra_special_tokens": {},
   "model_max_length": 1000000000000000019884624838656,
   "processor_class": "UniversalActionProcessor",

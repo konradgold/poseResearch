@@ -12,6 +12,7 @@ from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose2D.yolo_estimation import YOLOEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
+from estimation.preprocess.yolo_bb_preprocess import YOLOBoundingBoxPreprocess
 
 
 # Minimal dummy estimators
@@ -22,7 +23,7 @@ class DummyPreprocessor(PreprocessEstimation):
 
     @property
     def identifier(self):
-        return "preprocessor"
+        return "DummyPreprocessor"
 
     def _forward(self, data):  # type: ignore
         return torch.randn(data.size(0), 224, 224, 3)
@@ -35,7 +36,7 @@ class Dummy2DPose(TwoDPoseEstimation):
 
     @property
     def identifier(self):
-        return "flatpose"
+        return "Dummy2DPose"
 
     def _forward(self, images):
         return torch.randn(2, images.size(0), 17, 3)
@@ -48,7 +49,7 @@ class Dummy3DPose(ThreeDPoseEstimation):
 
     @property
     def identifier(self):
-        return "poselifting"
+        return "Dummy3DPose"
 
     def _forward(self, poses_2d):
         return poses_2d
@@ -161,7 +162,30 @@ def example6_motionbert_from_2d_poses():
     print(f"MotionBERT result: {result.shape}")
 
 
-def example7_large_video_batch_processing():
+def example_7_yolo_bb_preprocess():
+    """Run YOLO bounding box preprocess."""
+    print("=== YOLO Bounding Box Preprocess ===")
+
+    data_loader = ProcessManager(
+        save_path="results-yolo11x-bb-preprocess_conv1_t1.json"
+    )
+    data_loader.set_input_from_video("conv1_t1_preview.mp4")
+
+    pipeline = EstimationPipe(
+        YOLOBoundingBoxPreprocess(
+            model="yolo11l-pose.pt",
+            video_path="yolo11x_bb_preprocess_conv1_t1.mp4",
+        ),
+        Dummy2DPose(),
+        Dummy3DPose(),
+        data_loader,
+    )
+
+    result = pipeline.forward()
+    print(f"YOLO Bounding Box Preprocess result: {result.shape}")
+
+
+def example_8_large_video_batch_processing():
     """Process a large video with small batch sizes to avoid memory issues."""
     print("\n=== Large Video Batch Processing ===")
 
@@ -193,4 +217,5 @@ if __name__ == "__main__":
     # example_4_individual_stage()
     # example_5_from_video()
     # example6_motionbert_from_2d_poses()
-    example7_large_video_batch_processing()
+    example_7_yolo_bb_preprocess()
+    # example_8_large_video_batch_processing()
