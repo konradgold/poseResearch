@@ -197,16 +197,16 @@ class Pose3DVisualizer(PoseVisualizer):
         ax.zaxis.pane.set_alpha(0.1)
 
     def visualize_2d_poses(
-        self, poses_2d: torch.Tensor, batch_info: dict, stage_name: str
+        self, poses_2d: torch.Tensor, frame_info: dict, stage_name: str
     ):
         """2D visualization not supported by 3D visualizer"""
         pass  # Do nothing - this visualizer is only for 3D
 
     def visualize_3d_poses(
-        self, poses_3d: torch.Tensor, batch_info: dict, stage_name: str
+        self, poses_3d: torch.Tensor, frame_info: dict, stage_name: str
     ):
         """Visualize 3D poses from poselifting stage with professional styling"""
-        batch_idx = batch_info["batch_idx"]
+        frame_idx = frame_info["batch_idx"]
 
         # Convert to numpy for visualization
         poses_np = poses_3d.detach().cpu().numpy()
@@ -226,7 +226,7 @@ class Pose3DVisualizer(PoseVisualizer):
             plt.text(
                 0.5,
                 0.5,
-                f"No poses detected in batch {batch_idx}",
+                f"No poses detected in frame {frame_idx}",
                 ha="center",
                 va="center",
                 transform=fig.transFigure,
@@ -246,7 +246,7 @@ class Pose3DVisualizer(PoseVisualizer):
                         person_idx, 0
                     ]  # First frame, shape: (num_keypoints, 3)
                     title = (
-                        f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}"
+                        f"Person {person_idx + 1} - {stage_name} - Frame {frame_idx}"
                     )
                     self.plot_single_pose_3d(
                         ax, keypoints, person_id=person_idx, title=title
@@ -254,7 +254,7 @@ class Pose3DVisualizer(PoseVisualizer):
                 else:
                     ax.text(0, 0, 0, "No person detected", fontsize=12, ha="center")
                     ax.set_title(
-                        f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}",
+                        f"Person {person_idx + 1} - {stage_name} - Frame {frame_idx}",
                         fontsize=14,
                         fontweight="bold",
                     )
@@ -292,9 +292,8 @@ class Pose3DVisualizer(PoseVisualizer):
                 "SkeletonConfig", ""
             ).lower()
 
-            # Use frame_id if available for sequential video frame naming
-            frame_id = batch_info.get("frame_id", batch_idx)
-            filename = f"{self.output_dir}/{stage_name}_frame_{frame_id:04d}_3d_{skeleton_name}.png"
+            # Use batch_idx for sequential video frame naming
+            filename = f"{self.output_dir}/{stage_name}_batch_{frame_idx:04d}_3d_{skeleton_name}.png"
 
             plt.savefig(filename, dpi=150, bbox_inches="tight")
             plt.close()

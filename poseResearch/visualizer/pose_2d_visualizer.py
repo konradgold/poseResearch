@@ -169,10 +169,10 @@ class Pose2DVisualizer(PoseVisualizer):
         ax.set_ylim(-4, 4)
 
     def visualize_2d_poses(
-        self, poses_2d: torch.Tensor, batch_info: dict, stage_name: str
+        self, poses_2d: torch.Tensor, frame_info: dict, stage_name: str
     ):
         """Visualize 2D poses from flatpose stage with sophisticated styling"""
-        batch_idx = batch_info["batch_idx"]
+        frame_idx = frame_info["batch_idx"]
 
         # Convert to numpy for visualization
         poses_np = poses_2d.detach().cpu().numpy()
@@ -192,7 +192,7 @@ class Pose2DVisualizer(PoseVisualizer):
             plt.text(
                 0.5,
                 0.5,
-                f"No poses detected in batch {batch_idx}",
+                f"No poses detected in frame {frame_idx}",
                 ha="center",
                 va="center",
                 transform=fig.transFigure,
@@ -210,7 +210,7 @@ class Pose2DVisualizer(PoseVisualizer):
                         person_idx, 0
                     ]  # First frame, shape: (num_keypoints, 2)
                     title = (
-                        f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}"
+                        f"Person {person_idx + 1} - {stage_name} - Frame {frame_idx}"
                     )
                     self.plot_single_pose_2d(
                         ax, keypoints, person_id=person_idx, title=title
@@ -226,7 +226,7 @@ class Pose2DVisualizer(PoseVisualizer):
                         transform=ax.transAxes,
                     )
                     ax.set_title(
-                        f"Person {person_idx + 1} - {stage_name} - Batch {batch_idx}",
+                        f"Person {person_idx + 1} - {stage_name} - Frame {frame_idx}",
                         fontsize=12,
                         fontweight="bold",
                     )
@@ -261,9 +261,8 @@ class Pose2DVisualizer(PoseVisualizer):
                 "SkeletonConfig", ""
             ).lower()
 
-            # Use frame_id if available for sequential video frame naming (like 3D visualizer)
-            frame_id = batch_info.get("frame_id", batch_idx)
-            filename = f"{self.output_dir}/{stage_name}_frame_{frame_id:04d}_2d_{skeleton_name}.png"
+            # Use batch_idx for sequential video frame naming
+            filename = f"{self.output_dir}/{stage_name}_batch_{frame_idx:04d}_2d_{skeleton_name}.png"
 
             plt.savefig(filename, dpi=150, bbox_inches="tight")
             plt.close()

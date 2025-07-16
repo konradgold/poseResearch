@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from MotionBERT.lib.utils.tools import get_config
 from MotionBERT.lib.utils.learning import load_backbone
+from MotionBERT.lib.utils.utils_data import crop_scale
 from .pose_estimation_3D import ThreeDPoseEstimation
 
 
@@ -74,7 +75,7 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
 
     def preprocess_2d_poses(self, poses_2d: np.ndarray) -> np.ndarray:
         """
-        Preprocess 2D poses for MotionBERT input.
+        Preprocess 2D poses for MotionBERT input using MotionBERT's normalization approach.
 
         Args:
             poses_2d: Raw 2D poses of shape (T, P, 17, 3)
@@ -84,14 +85,25 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
         """
         T, P = poses_2d.shape[:2]
         poses_normalized = poses_2d.copy()
-        # Unfold dimensions 0 (T) and 1 (P) if any of dim 4 (17 keypoints), 0 (x coordinate) are nonzero
-        # That is, keep only frames/persons where any keypoint x != 0
-        # poses_2d shape: (T, P, 17, 3)
+
+        # Apply MotionBERT normalization to each person's pose sequence
+        for p in range(P):
+            person_poses = poses_normalized[:, p, :, :]  # Shape: (T, 17, 3)
+            # Apply MotionBERT's crop_scale normalization
+            person_poses = crop_scale(person_poses, scale_range=[1, 1])
+            poses_normalized[:, p, :, :] = person_poses
+
+        # Filter out frames/persons with no valid keypoints
         nonzero_mask = np.any(poses_normalized[..., 0] != 0, axis=2)  # shape (T, P)
-        # Find indices where any person in a frame has nonzero keypoints
         valid_frames = np.where(np.any(nonzero_mask, axis=1))[0]
         valid_persons = np.where(np.any(nonzero_mask, axis=0))[0]
+
+        if len(valid_frames) == 0 or len(valid_persons) == 0:
+            # Return empty array if no valid poses found
+            return np.zeros((0, 17, 3))
+
         poses_normalized = poses_normalized[valid_frames][:, valid_persons]
+
         # Reshape to (T*P, 17, 3) for MotionBERT input
         poses_normalized = poses_normalized.reshape(
             -1, poses_normalized.shape[2], poses_normalized.shape[3]
@@ -202,6 +214,7 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
     def _post_process(self, output: torch.Tensor) -> torch.Tensor:
         """
         Post-process MotionBERT output to fix coordinate system orientation.
+        Transform so pose looks towards positive y and feet are at negative z.
 
         Args:
             output (torch.Tensor): Output from _forward method (P, T, 17, 3)
@@ -209,13 +222,17 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
         Returns:
             torch.Tensor: Post-processed output with corrected orientation
         """
-        # Simple rotation correction to fix MotionBERT's coordinate system
-        # Flip axes to correct orientation and mirror the pose horizontally
+        # Transform coordinate system so that:
+        # - Pose looks towards positive y
+        # - Feet are at negative z
         corrected_output = output.clone()
-        corrected_output[:, :, :, 0] = -output[
-            :, :, :, 0
-        ]  # x = -x (flip x to mirror pose horizontally)
-        corrected_output[:, :, :, 1] = -output[:, :, :, 2]  # y = -z
+
+        # Apply coordinate transformation:
+        # new_x = old_x (keep left/right as is)
+        # new_y = old_z (forward/back direction becomes the "looking" direction)
+        # new_z = -old_y (up/down direction becomes depth, with feet at negative z)
+        corrected_output[:, :, :, 0] = output[:, :, :, 0]  # x = x
+        corrected_output[:, :, :, 1] = output[:, :, :, 2]  # y = z
         corrected_output[:, :, :, 2] = output[:, :, :, 1]  # z = y
 
         return corrected_output

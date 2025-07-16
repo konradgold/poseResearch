@@ -32,8 +32,42 @@ class YOLOBoundingBoxPreprocess(PreprocessEstimation):
         self.model = YOLO(model)
         self.video_path = video_path
 
+    def save_video(self, output: torch.Tensor) -> None:
+        """Save the output video to a file."""
+        # Write the output tensor to a video file for visualization
+        if self.video_path is not None:
+            try:
+                # Convert output to uint8 and numpy for video writing
+                output_np = output.cpu().numpy()
+
+                # Normalize to 0-255 range if needed
+                if output_np.max() <= 1.0:
+                    output_np = (output_np * 255).astype("uint8")
+                else:
+                    output_np = (output_np.clip(0, 255)).astype("uint8")
+
+                # Write to video file using OpenCV
+                frames, height, width, _ = output_np.shape
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+                fps = 30
+
+                out = cv2.VideoWriter(self.video_path, fourcc, fps, (width, height))
+
+                for t in range(frames):
+                    frame = output_np[t]
+                    # OpenCV expects BGR format, convert from RGB if needed
+                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    out.write(frame_bgr)
+
+                out.release()
+                print(f"{self.identifier}: Output video written to {self.video_path}")
+
+            except ImportError:
+                raise
+
     def _forward(self, images: torch.Tensor) -> torch.Tensor:
         """
+        Processes a batch of images.
         Masks out everything outside the bounding boxes of people.
         Args:
             images (torch.Tensor): Input images of shape (T, H, W, C)
@@ -90,36 +124,8 @@ class YOLOBoundingBoxPreprocess(PreprocessEstimation):
                 masked_img[..., c][current_mask] = img[..., c][current_mask]
             output[t] = masked_img
 
-        if self.video_path is not None:
-            # Write the output tensor to a video file for visualization
-            try:
-                # Convert output to uint8 and numpy for video writing
-                output_np = output.cpu().numpy()
-
-                # Normalize to 0-255 range if needed
-                if output_np.max() <= 1.0:
-                    output_np = (output_np * 255).astype("uint8")
-                else:
-                    output_np = (output_np.clip(0, 255)).astype("uint8")
-
-                # Write to video file using OpenCV
-                frames, height, width, _ = output_np.shape
-                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                fps = 30
-
-                out = cv2.VideoWriter(self.video_path, fourcc, fps, (width, height))
-
-                for t in range(frames):
-                    frame = output_np[t]
-                    # OpenCV expects BGR format, convert from RGB if needed
-                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    out.write(frame_bgr)
-
-                out.release()
-                print(f"{self.identifier}: Output video written to {self.video_path}")
-
-            except ImportError:
-                raise
+        if False:  # TODO: Does not work in batch mode
+            self.save_video(output)
 
         # Print detection statistics
         print(
