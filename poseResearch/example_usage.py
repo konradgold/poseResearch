@@ -191,7 +191,7 @@ def example_8_large_video_batch_processing():
 
     # Use smaller batch size for very large videos or limited memory
     data_loader = ProcessManager(save_path="results-large-video.json", batch_size=100)
-    data_loader.set_input_from_video("malemonologue2_t2-cam01.mp4", num_frames=400)
+    data_loader.set_input_from_video("malemonologue2_t2-cam09.mp4", num_frames=400)
 
     print(f"Video prepared for batch processing: {data_loader.total_frames} frames")
     print(f"Batch size: {data_loader.batch_size}")
@@ -217,5 +217,5 @@ if __name__ == "__main__":
     # example_4_individual_stage()
     # example_5_from_video()
     # example6_motionbert_from_2d_poses()
-    example_7_yolo_bb_preprocess()
-    # example_8_large_video_batch_processing()
+    # example_7_yolo_bb_preprocess()
+    example_8_large_video_batch_processing()
