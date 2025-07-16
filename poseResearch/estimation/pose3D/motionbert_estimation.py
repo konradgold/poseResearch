@@ -89,15 +89,8 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
         # Apply MotionBERT normalization to each person's pose sequence
         for p in range(P):
             person_poses = poses_normalized[:, p, :, :]  # Shape: (T, 17, 3)
-
             # Apply MotionBERT's crop_scale normalization
-            if self.pixel:
-                # Keep relative scale with pixel coordinates
-                person_poses = crop_scale(person_poses, scale_range=None)
-            else:
-                # Scale to [-1,1] (normalized mode)
-                person_poses = crop_scale(person_poses, scale_range=[1, 1])
-
+            person_poses = crop_scale(person_poses, scale_range=[1, 1])
             poses_normalized[:, p, :, :] = person_poses
 
         # Filter out frames/persons with no valid keypoints
