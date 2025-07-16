@@ -161,7 +161,7 @@ def main():
         print("EXAMPLES COMPLETED SUCCESSFULLY!")
         print("=" * 50)
 
-        print(f"\nResults Summary:")
+        print("\nResults Summary:")
         print(f"Single validation score: {single_score:.4f}")
         # print(f"Batch validation average: {np.mean(batch_scores):.4f}")
 

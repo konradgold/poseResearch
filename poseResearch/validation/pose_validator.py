@@ -1,8 +1,7 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 import numpy as np
 import cv2
 import torch
-from scipy.optimize import linear_sum_assignment
 
 import sys
 from pathlib import Path
@@ -207,7 +206,7 @@ class PoseValidator:
 
             # Filter by confidence if needed
             confidence = frame_2d_gt[:, :, 2]  # (num_people, num_keypoints)
-            valid_people = []
+            # valid_people = []
             valid_3d = []
             valid_2d = []
 
