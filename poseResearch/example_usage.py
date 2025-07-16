@@ -207,7 +207,7 @@ def example_8_large_video_batch_processing():
     print(f"Final result shape: {result.shape}")
     print(f"Total batches processed: {pipeline.processed_batches}")
     print(f"Frames per batch: {data_loader.batch_size}")
-    print(f"Memory usage optimized for large videos!")
+    print("Memory usage optimized for large videos!")
 
 
 if __name__ == "__main__":

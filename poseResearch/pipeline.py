@@ -4,8 +4,7 @@ from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from utils.process_manager import ProcessManager, StageName
-from utils.visualizer import PoseVisualizer
-from typing import Optional, Tuple, List
+from typing import Tuple, List
 
 
 class EstimationPipe:
