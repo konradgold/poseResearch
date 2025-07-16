@@ -4,7 +4,7 @@ import json
 import numpy as np
 import os
 import torch
-from typing import Dict, Any, Optional, Union, Literal
+from typing import Dict, Any, Literal
 from pathlib import Path
 
 # Define the allowed stage names as a type
@@ -20,7 +20,7 @@ class ProcessManager:
     Supports batch processing for large videos to avoid memory issues.
     """
 
-    def __init__(self, save_path: Optional[str] = None, batch_size: int = 32):
+    def __init__(self, save_path: str | None = None, batch_size: int = 32):
         self.data_store: Dict[StageName, Any] = {}
         self.save_path = Path(save_path) if save_path else None
         self.batch_size = batch_size
@@ -89,7 +89,7 @@ class ProcessManager:
         return frame_count
 
     def _video_to_tensor(
-        self, video_path: str, num_frames: Optional[int] = None
+        self, video_path: str, num_frames: int | None = None
     ) -> torch.Tensor:
         """Convert a video to a tensor in BCHW format, using batches for memory efficiency."""
         cap = cv2.VideoCapture(video_path)
@@ -116,7 +116,7 @@ class ProcessManager:
         return frames_tensor
 
     def set_input_from_video(
-        self, video_path: Union[str, Path], num_frames: Optional[int] = None
+        self, video_path: str | Path, num_frames: int | None = None
     ) -> None:
         """Set the input data from a video file."""
         resolved_video_path = Path(video_path)
@@ -162,7 +162,7 @@ class ProcessManager:
         self.accumulated_results = {}
         self.processed_frames = 0
 
-    def get_current_input(self) -> Optional[torch.Tensor]:
+    def get_current_input(self) -> torch.Tensor | None:
         """Get the appropriate input data for the next stage to run."""
         next_stage = self.get_next_stage()
 
@@ -171,7 +171,7 @@ class ProcessManager:
         else:
             return self.get_input_for_stage(next_stage)
 
-    def get_next_batch(self) -> Optional[torch.Tensor]:
+    def get_next_batch(self) -> torch.Tensor | None:
         """Get the next batch of video frames for processing."""
         if (
             not hasattr(self, "video_path")
@@ -270,9 +270,7 @@ class ProcessManager:
         else:
             raise ValueError("No batches were processed")
 
-    def handle(
-        self, output: Union[torch.Tensor, np.ndarray], config: Dict[str, Any]
-    ) -> None:
+    def handle(self, output: torch.Tensor | np.ndarray, config: Dict[str, Any]) -> None:
         """Store output from a pipeline stage."""
         stage_name = config.get("stage_name")
 
@@ -302,7 +300,7 @@ class ProcessManager:
             stage_path = self.save_path.parent / "dataloader" / stage_filename
             self.save_json(str(stage_path), stage_name)
 
-    def get_tensor(self, stage_name: StageName) -> Optional[torch.Tensor]:
+    def get_tensor(self, stage_name: StageName) -> torch.Tensor | None:
         """Get data as PyTorch tensor from a specific stage."""
         if stage_name in self.data_store:
             data = np.array(self.data_store[stage_name]["data"])
@@ -339,14 +337,14 @@ class ProcessManager:
             return "future"
         return "preprocessor"
 
-    def get_input_for_stage(self, stage: StageName) -> Optional[torch.Tensor]:
+    def get_input_for_stage(self, stage: StageName) -> torch.Tensor | None:
         """Get the appropriate input data for a given stage."""
         input_stages: dict[StageName, StageName] = {
             "flatpose": "preprocessor",
             "poselifting": "flatpose",
             "quantization": "poselifting",
         }
-        input_stage: Optional[StageName] = input_stages.get(stage)
+        input_stage: StageName | None = input_stages.get(stage)
         if input_stage is None:
             raise ValueError(f"No input stage found for stage: {stage}")
         return self.get_tensor(input_stage)
@@ -370,7 +368,7 @@ class ProcessManager:
             return self.get_input_for_stage(next_stage) is not None
 
     def save_json(
-        self, filepath: Optional[str] = None, stage_name: Optional[StageName] = None
+        self, filepath: str | None = None, stage_name: StageName | None = None
     ) -> None:
         """Save all stored data to JSON.
         If stage_name is provided, save only the data for that stage.
