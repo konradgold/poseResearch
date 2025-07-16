@@ -164,11 +164,16 @@ def example_7_yolo_bb_preprocess():
     """Run YOLO bounding box preprocess."""
     print("=== YOLO Bounding Box Preprocess ===")
 
-    data_loader = ProcessManager(save_path="results-yolo-bb-preprocess.json")
-    data_loader.set_input_from_video("fem1_t1_preview.mp4")
+    data_loader = ProcessManager(
+        save_path="results-yolo11x-bb-preprocess_conv1_t1.json"
+    )
+    data_loader.set_input_from_video("conv1_t1_preview.mp4")
 
     pipeline = EstimationPipe(
-        YOLOBoundingBoxPreprocess("yolo11s-pose.pt"),
+        YOLOBoundingBoxPreprocess(
+            model="yolo11l-pose.pt",
+            video_path="yolo11x_bb_preprocess_conv1_t1.mp4",
+        ),
         Dummy2DPose(),
         Dummy3DPose(),
         data_loader,

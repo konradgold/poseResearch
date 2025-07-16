@@ -94,12 +94,12 @@ class ProcessManager:
             ".mpeg",
             ".mpg",
         }
-        _, ext = os.path.splitext(video_path)
+        _, ext = os.path.splitext(resolved_video_path)
         if ext.lower() not in valid_extensions:
             raise ValueError(
                 f"File {video_path} does not have a valid video extension: {ext}"
             )
-        video_frames = self._video_to_tensor(video_path, num_frames)
+        video_frames = self._video_to_tensor(str(resolved_video_path), num_frames)
         self.set_input(video_frames)
 
     def get_current_input(self) -> Optional[torch.Tensor]:
