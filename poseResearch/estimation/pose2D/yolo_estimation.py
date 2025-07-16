@@ -1,6 +1,16 @@
 from .pose_estimation_2D import TwoDPoseEstimation
 import torch
 from ultralytics import YOLO
+from typing import Literal
+
+
+available__yolo_pose_models = Literal[
+    "yolo11n-pose.pt",
+    "yolo11s-pose.pt",
+    "yolo11m-pose.pt",
+    "yolo11l-pose.pt",
+    "yolo11x-pose.pt",
+]
 
 
 class YOLOEstimation(TwoDPoseEstimation):
@@ -22,9 +32,9 @@ class YOLOEstimation(TwoDPoseEstimation):
     def identifier(self):
         return "YOLOEstimation"
 
-    def __init__(self, model_path: str):
+    def __init__(self, model: available__yolo_pose_models):
         super().__init__()
-        self.model = YOLO(model_path)
+        self.model = YOLO(model)
 
     def _forward(self, images: torch.Tensor) -> torch.Tensor | None:
         """

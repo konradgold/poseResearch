@@ -191,7 +191,7 @@ class GPT(nn.Module):
         # "UserWarning: functional_call was passed multiple values for tied weights.
         # This behavior is deprecated and will be an error in future versions"
         # not 100% sure what this is, so far seems to be harmless. TODO investigate
-        self.transformer.wte.weight = ( # type: ignore
+        self.transformer.wte.weight = (  # type: ignore
             self.lm_head.weight
         )  # https://paperswithcode.com/method/weight-tying
 
@@ -339,48 +339,50 @@ class GPT(nn.Module):
                     sd[k].copy_(sd_hf[k])
 
         return model
-    
+
     @classmethod
-    def from_checkpoint(cls, checkpoint_path, device='cpu'):
+    def from_checkpoint(cls, checkpoint_path, device="cpu"):
         """Load model from custom checkpoint"""
         print(f"Loading checkpoint from {checkpoint_path}")
-        
+
         # Load checkpoint
         checkpoint = torch.load(checkpoint_path, map_location=device)
-        
+
         # Extract model arguments/config
-        if 'model_args' in checkpoint:
+        if "model_args" in checkpoint:
             # If model_args is a namespace or dict, convert to dict
-            model_args = checkpoint['model_args']
-            if hasattr(model_args, '__dict__'):
+            model_args = checkpoint["model_args"]
+            if hasattr(model_args, "__dict__"):
                 model_args = vars(model_args)
-        elif 'config' in checkpoint:
+        elif "config" in checkpoint:
             # If config is stored as GPTConfig object
-            config = checkpoint['config']
-            if hasattr(config, '__dict__'):
+            config = checkpoint["config"]
+            if hasattr(config, "__dict__"):
                 model_args = vars(config)
             else:
                 model_args = config
         else:
             raise ValueError("Checkpoint must contain either 'model_args' or 'config'")
-        
+
         # Create config and model
         config = GPTConfig(**model_args)
         model = cls(config)
-        
+
         # Load state dict
-        model.load_state_dict(checkpoint['model'])
-        
+        model.load_state_dict(checkpoint["model"])
+
         # Return model and additional checkpoint info
         checkpoint_info = {
-            'iter_num': checkpoint.get('iter_num', 0),
-            'best_val_loss': checkpoint.get('best_val_loss', float('inf')),
-            'config': config
+            "iter_num": checkpoint.get("iter_num", 0),
+            "best_val_loss": checkpoint.get("best_val_loss", float("inf")),
+            "config": config,
         }
-    
+
         return model, checkpoint_info
 
-    def configure_optimizers(self, weight_decay, learning_rate: float, betas, device_type):
+    def configure_optimizers(
+        self, weight_decay, learning_rate: float, betas, device_type
+    ):
         # start with all of the candidate parameters
         param_dict = {pn: p for pn, p in self.named_parameters()}
         # filter out those that do not require grad
