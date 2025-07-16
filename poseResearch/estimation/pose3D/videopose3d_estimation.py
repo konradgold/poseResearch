@@ -13,7 +13,7 @@ class VideoPose3DEstimation(ThreeDPoseEstimation):
 
     def __init__(
         self,
-        checkpoint_path: str = "MotionBERT/checkpoint/pose3d/FT_MB_lite_MB_ft_h36m_global_lite/best_epoch.bin",
+        checkpoint_path: str = "detectron2/model_zoo/checkpoints/pretrained_h36m_detectron_coco.bin",
     ):
         super().__init__()
         # Get the project root directory (assuming this file is in poseResearch/estimation/pose3D/)
