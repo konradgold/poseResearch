@@ -98,12 +98,10 @@ def main():
 
     print(f"Nr. Tokens: {fast_tokenizer.vocab_size}")
 
-
     # Introduce eot token:
     for i, x in enumerate(result_tensor):
         x.append(fast_tokenizer.tokenizer.bpe_tokenizer.eos_token_id)
         result_tensor[i] = x
-
 
     result_tensor = numpy.concatenate([x for x in result_tensor])
     arr = numpy.memmap(
@@ -112,8 +110,6 @@ def main():
     arr[:] = result_tensor
     print(arr.min(), arr.max(), arr.mean())
     arr.flush()
-
-
 
     print("Processing complete!")
 

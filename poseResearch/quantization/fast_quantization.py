@@ -7,7 +7,7 @@ from poseResearch.quantization.base_quantizer import VQVAEBase
 
 
 class FASTQuantizer(VQVAEBase):
-    def __init__(self, pretrained: Optional[str]=None) -> None:
+    def __init__(self, pretrained: Optional[str] = None) -> None:
         self.tokenizer = AutoProcessor.from_pretrained(
             "physical-intelligence/fast", trust_remote_code=True
         )
@@ -15,7 +15,6 @@ class FASTQuantizer(VQVAEBase):
             self.tokenizer.from_pretrained(pretrained)
         else:
             self.tokenizer.bpe_tokenizer.add_special_tokens({"eos_token": "<EOS>"})
-        
 
     def normalize(self, x: torch.Tensor) -> torch.Tensor:
         self.min_vals = torch.amin(x, dim=(1, 2), keepdim=True)
@@ -31,10 +30,7 @@ class FASTQuantizer(VQVAEBase):
         normalized_tensor: numpy.ndarray = self._preprocess_input(data)
         # Replace NaN values with zeros and create block list
         normalized_tensor = numpy.nan_to_num(normalized_tensor, nan=0.0)
-        block_list = [
-            normalized_tensor[i]
-            for i in range(normalized_tensor.shape[0])
-        ]
+        block_list = [normalized_tensor[i] for i in range(normalized_tensor.shape[0])]
 
         self.tokenizer.fit(block_list)
 
@@ -85,11 +81,11 @@ class FASTQuantizer(VQVAEBase):
             inputs = input_tensor.numpy()
         else:
             inputs = self._preprocess_input(input_tensor)
-        
+
         out = self.tokenizer(inputs)
 
         return out
-    
+
     def shape_back(self, input_ids: torch.Tensor) -> torch.Tensor:
         """
         Reshapes the input_ids back to the original shape.
