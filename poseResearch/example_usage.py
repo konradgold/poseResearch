@@ -9,6 +9,7 @@ from pipeline import EstimationPipe
 from estimation.preprocess.preprocess_estimation import PreprocessEstimation
 from estimation.preprocess.no_preprocess import NoPreprocess
 from estimation.pose2D.pose_estimation_2D import TwoDPoseEstimation
+from estimation.pose2D.detectron2_estimation import Detectron2Estimation
 from estimation.pose2D.yolo_estimation import YOLOEstimation
 from estimation.pose3D.pose_estimation_3D import ThreeDPoseEstimation
 from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
@@ -210,6 +211,26 @@ def example_8_large_video_batch_processing():
     print("Memory usage optimized for large videos!")
 
 
+def example_9_detectron2_from_video():
+    """Load video and run pipeline."""
+    print("\n=== Video Input ===")
+
+    data_loader = ProcessManager(save_path="results-from-video.json")
+    data_loader.set_input_from_video("fem1_t1_preview.mp4", num_frames=20)
+
+    print("Data loading complete.")
+
+    pipeline = EstimationPipe(
+        NoPreprocess(),
+        Detectron2Estimation(),
+        MotionBERTEstimation(),
+        data_loader,
+    )
+
+    result = pipeline.forward()
+    print(f"Video result: {result.shape}")
+
+
 if __name__ == "__main__":
     # example_1_full_pipeline()
     # example_2_from_2d_poses()
@@ -219,3 +240,4 @@ if __name__ == "__main__":
     # example6_motionbert_from_2d_poses()
     example_7_yolo_bb_preprocess()
     # example_8_large_video_batch_processing()
+    # example_9_detectron2_from_video()
