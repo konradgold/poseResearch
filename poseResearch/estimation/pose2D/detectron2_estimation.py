@@ -11,6 +11,7 @@ from detectron2.detectron2.engine import DefaultPredictor
 
 class Detectron2Estimation(TwoDPoseEstimation):
     """
+    Disclaimer: This class is wip, do not use!
     Detectron2 estimation for 2D poses.
     Available models:
     https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md

@@ -6,6 +6,7 @@ from .pose_estimation_3D import ThreeDPoseEstimation
 
 class VideoPose3DEstimation(ThreeDPoseEstimation):
     """
+    Disclaimer: This class is wip, do not use!
     Class for MotionBERT 3D pose estimation.
     Input: 2D poses as a tensor of shape (P, T, 17, 3)
     Output: 3D poses as a tensor of shape (P, T, 18, 3)
