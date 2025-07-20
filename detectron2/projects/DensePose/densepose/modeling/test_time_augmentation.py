@@ -7,9 +7,16 @@ import torch
 from fvcore.transforms import HFlipTransform, TransformList
 from torch.nn import functional as F
 
-from detectron2.data.transforms import RandomRotation, RotationTransform, apply_transform_gens
-from detectron2.modeling.postprocessing import detector_postprocess
-from detectron2.modeling.test_time_augmentation import DatasetMapperTTA, GeneralizedRCNNWithTTA
+from detectron2.detectron2.data.transforms import (
+    RandomRotation,
+    RotationTransform,
+    apply_transform_gens,
+)
+from detectron2.detectron2.modeling.postprocessing import detector_postprocess
+from detectron2.detectron2.modeling.test_time_augmentation import (
+    DatasetMapperTTA,
+    GeneralizedRCNNWithTTA,
+)
 
 from ..converters import HFlipConverter
 
@@ -25,7 +32,9 @@ class DensePoseDatasetMapperTTA(DatasetMapperTTA):
         for angle in self.angles:
             rotate = RandomRotation(angle=angle, expand=True)
             new_numpy_image, tfms = apply_transform_gens([rotate], np.copy(numpy_image))
-            torch_image = torch.from_numpy(np.ascontiguousarray(new_numpy_image.transpose(2, 0, 1)))
+            torch_image = torch.from_numpy(
+                np.ascontiguousarray(new_numpy_image.transpose(2, 0, 1))
+            )
             dic = copy.deepcopy(dataset_dict)
             # In DatasetMapperTTA, there is a pre_tfm transform (resize or no-op) that is
             # added at the beginning of each TransformList. That's '.transforms[0]'.
@@ -51,7 +60,9 @@ class DensePoseGeneralizedRCNNWithTTA(GeneralizedRCNNWithTTA):
             batch_size (int): batch the augmented images into this batch size for inference.
         """
         self._transform_data = transform_data.to(model.device)
-        super().__init__(cfg=cfg, model=model, tta_mapper=tta_mapper, batch_size=batch_size)
+        super().__init__(
+            cfg=cfg, model=model, tta_mapper=tta_mapper, batch_size=batch_size
+        )
 
     # the implementation follows closely the one from detectron2/modeling
     def _inference_one_image(self, input):
@@ -69,8 +80,12 @@ class DensePoseGeneralizedRCNNWithTTA(GeneralizedRCNNWithTTA):
         # Detect boxes from all augmented versions
         with self._turn_off_roi_heads(["mask_on", "keypoint_on", "densepose_on"]):
             # temporarily disable roi heads
-            all_boxes, all_scores, all_classes = self._get_augmented_boxes(augmented_inputs, tfms)
-        merged_instances = self._merge_detections(all_boxes, all_scores, all_classes, orig_shape)
+            all_boxes, all_scores, all_classes = self._get_augmented_boxes(
+                augmented_inputs, tfms
+            )
+        merged_instances = self._merge_detections(
+            all_boxes, all_scores, all_classes, orig_shape
+        )
 
         if self.cfg.MODEL.MASK_ON or self.cfg.MODEL.DENSEPOSE_ON:
             # Use the detected boxes to obtain new fields
@@ -85,7 +100,9 @@ class DensePoseGeneralizedRCNNWithTTA(GeneralizedRCNNWithTTA):
             if self.cfg.MODEL.MASK_ON:
                 merged_instances.pred_masks = self._reduce_pred_masks(outputs, tfms)
             if self.cfg.MODEL.DENSEPOSE_ON:
-                merged_instances.pred_densepose = self._reduce_pred_densepose(outputs, tfms)
+                merged_instances.pred_densepose = self._reduce_pred_densepose(
+                    outputs, tfms
+                )
             # postprocess
             merged_instances = detector_postprocess(merged_instances, *orig_shape)
             return {"instances": merged_instances}
@@ -107,7 +124,9 @@ class DensePoseGeneralizedRCNNWithTTA(GeneralizedRCNNWithTTA):
                 # Some transforms can't compute bbox correctly
                 pred_boxes = output.pred_boxes.tensor
                 original_pred_boxes = tfm.inverse().apply_box(pred_boxes.cpu().numpy())
-                all_boxes.append(torch.from_numpy(original_pred_boxes).to(pred_boxes.device))
+                all_boxes.append(
+                    torch.from_numpy(original_pred_boxes).to(pred_boxes.device)
+                )
                 all_scores.extend(output.scores)
                 all_classes.extend(output.pred_classes)
         all_boxes = torch.cat(all_boxes, dim=0)
@@ -124,20 +143,28 @@ class DensePoseGeneralizedRCNNWithTTA(GeneralizedRCNNWithTTA):
                         output.pred_densepose,
                         attr,
                         _inverse_rotation(
-                            getattr(output.pred_densepose, attr), output.pred_boxes.tensor, t
+                            getattr(output.pred_densepose, attr),
+                            output.pred_boxes.tensor,
+                            t,
                         ),
                     )
             if any(isinstance(t, HFlipTransform) for t in tfm.transforms):
                 output.pred_densepose = HFlipConverter.convert(
                     output.pred_densepose, self._transform_data
                 )
-            self._incremental_avg_dp(outputs[0].pred_densepose, output.pred_densepose, idx)
+            self._incremental_avg_dp(
+                outputs[0].pred_densepose, output.pred_densepose, idx
+            )
         return outputs[0].pred_densepose
 
     # incrementally computed average: u_(n + 1) = u_n + (x_(n+1) - u_n) / (n + 1).
     def _incremental_avg_dp(self, avg, new_el, idx):
         for attr in ["coarse_segm", "fine_segm", "u", "v"]:
-            setattr(avg, attr, (getattr(avg, attr) * idx + getattr(new_el, attr)) / (idx + 1))
+            setattr(
+                avg,
+                attr,
+                (getattr(avg, attr) * idx + getattr(new_el, attr)) / (idx + 1),
+            )
             if idx:
                 # Deletion of the > 0 index intermediary values to prevent GPU OOM
                 setattr(new_el, attr, None)
@@ -151,9 +178,15 @@ def _inverse_rotation(densepose_attrs, boxes, transform):
         return densepose_attrs
     boxes = boxes.int().cpu().numpy()
     wh_boxes = boxes[:, 2:] - boxes[:, :2]  # bboxes in the rotated space
-    inv_boxes = rotate_box_inverse(transform, boxes).astype(int)  # bboxes in original image
-    wh_diff = (inv_boxes[:, 2:] - inv_boxes[:, :2] - wh_boxes) // 2  # diff between new/old bboxes
-    rotation_matrix = torch.tensor([transform.rm_image]).to(device=densepose_attrs.device).float()
+    inv_boxes = rotate_box_inverse(transform, boxes).astype(
+        int
+    )  # bboxes in original image
+    wh_diff = (
+        inv_boxes[:, 2:] - inv_boxes[:, :2] - wh_boxes
+    ) // 2  # diff between new/old bboxes
+    rotation_matrix = (
+        torch.tensor([transform.rm_image]).to(device=densepose_attrs.device).float()
+    )
     rotation_matrix[:, :, -1] = 0
     # To apply grid_sample for rotation, we need to have enough space to fit the original and
     # rotated bboxes. l_bds and r_bds are the left/right bounds that will be used to
@@ -164,15 +197,21 @@ def _inverse_rotation(densepose_attrs, boxes, transform):
             continue
         densepose_attr = densepose_attrs[[i]].clone()
         # 1. Interpolate densepose attribute to size of the rotated bbox
-        densepose_attr = F.interpolate(densepose_attr, wh_boxes[i].tolist()[::-1], mode="bilinear")
+        densepose_attr = F.interpolate(
+            densepose_attr, wh_boxes[i].tolist()[::-1], mode="bilinear"
+        )
         # 2. Pad the interpolated attribute so it has room for the original + rotated bbox
-        densepose_attr = F.pad(densepose_attr, tuple(np.repeat(np.maximum(0, wh_diff[i]), 2)))
+        densepose_attr = F.pad(
+            densepose_attr, tuple(np.repeat(np.maximum(0, wh_diff[i]), 2))
+        )
         # 3. Compute rotation grid and transform
         grid = F.affine_grid(rotation_matrix, size=densepose_attr.shape)
         densepose_attr = F.grid_sample(densepose_attr, grid)
         # 4. Compute right bounds and crop the densepose_attr to the size of the original bbox
         r_bds = densepose_attr.shape[2:][::-1] - l_bds[i]
-        densepose_attr = densepose_attr[:, :, l_bds[i][1] : r_bds[1], l_bds[i][0] : r_bds[0]]
+        densepose_attr = densepose_attr[
+            :, :, l_bds[i][1] : r_bds[1], l_bds[i][0] : r_bds[0]
+        ]
         if min(densepose_attr.shape) > 0:
             # Interpolate back to the original size of the densepose attribute
             densepose_attr = F.interpolate(

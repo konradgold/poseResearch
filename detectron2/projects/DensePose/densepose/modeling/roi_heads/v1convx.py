@@ -6,8 +6,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from detectron2.config import CfgNode
-from detectron2.layers import Conv2d
+from detectron2.detectron2.config import CfgNode
+from detectron2.detectron2.layers import Conv2d
 
 from ..utils import initialize_module_params
 from .registry import ROI_DENSEPOSE_HEAD_REGISTRY
@@ -36,7 +36,9 @@ class DensePoseV1ConvXHead(nn.Module):
         pad_size = kernel_size // 2
         n_channels = input_channels
         for i in range(self.n_stacked_convs):
-            layer = Conv2d(n_channels, hidden_dim, kernel_size, stride=1, padding=pad_size)
+            layer = Conv2d(
+                n_channels, hidden_dim, kernel_size, stride=1, padding=pad_size
+            )
             layer_name = self._get_layer_name(i)
             self.add_module(layer_name, layer)
             n_channels = hidden_dim

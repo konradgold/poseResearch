@@ -7,17 +7,17 @@ from collections import Counter
 import tqdm
 from fvcore.nn import flop_count_table  # can also try flop_count_str
 
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import CfgNode, LazyConfig, get_cfg, instantiate
-from detectron2.data import build_detection_test_loader
-from detectron2.engine import default_argument_parser
-from detectron2.modeling import build_model
-from detectron2.utils.analysis import (
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import CfgNode, LazyConfig, get_cfg, instantiate
+from detectron2.detectron2.data import build_detection_test_loader
+from detectron2.detectron2.engine import default_argument_parser
+from detectron2.detectron2.modeling import build_model
+from detectron2.detectron2.utils.analysis import (
     FlopCountAnalysis,
     activation_count_operators,
     parameter_count_table,
 )
-from detectron2.utils.logger import setup_logger
+from detectron2.detectron2.utils.logger import setup_logger
 
 logger = logging.getLogger("detectron2")
 
@@ -58,13 +58,17 @@ def do_flop(cfg):
         counts += flops.by_operator()
         total_flops.append(flops.total())
 
-    logger.info("Flops table computed from only one input sample:\n" + flop_count_table(flops))
+    logger.info(
+        "Flops table computed from only one input sample:\n" + flop_count_table(flops)
+    )
     logger.info(
         "Average GFlops for each type of operators:\n"
         + str([(k, v / (idx + 1) / 1e9) for k, v in counts.items()])
     )
     logger.info(
-        "Total GFlops: {:.1f}±{:.1f}".format(np.mean(total_flops) / 1e9, np.std(total_flops) / 1e9)
+        "Total GFlops: {:.1f}±{:.1f}".format(
+            np.mean(total_flops) / 1e9, np.std(total_flops) / 1e9
+        )
     )
 
 

@@ -10,7 +10,7 @@ import torch
 from tabulate import tabulate
 from termcolor import colored
 
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.file_io import PathManager
 
 __all__ = ["setup_logger", "log_first_n", "log_every_n", "log_every_n_seconds"]
 
@@ -48,7 +48,7 @@ def setup_logger(
     name="detectron2",
     abbrev_name=None,
     enable_propagation: bool = False,
-    configure_stdout: bool = True
+    configure_stdout: bool = True,
 ):
     """
     Initialize the detectron2 logger and set its verbosity level to "DEBUG".
@@ -118,7 +118,9 @@ def setup_logger(
 @functools.lru_cache(maxsize=None)
 def _cached_log_stream(filename):
     # use 1K buffer if writing to cloud storage
-    io = PathManager.open(filename, "a", buffering=_get_log_stream_buffer_size(filename))
+    io = PathManager.open(
+        filename, "a", buffering=_get_log_stream_buffer_size(filename)
+    )
     atexit.register(io.close)
     return io
 

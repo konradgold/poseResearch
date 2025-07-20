@@ -9,11 +9,11 @@ from collections import defaultdict
 import cv2
 import tqdm
 
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.structures import Boxes, BoxMode, Instances
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.logger import setup_logger
-from detectron2.utils.visualizer import Visualizer
+from detectron2.detectron2.data import DatasetCatalog, MetadataCatalog
+from detectron2.detectron2.structures import Boxes, BoxMode, Instances
+from detectron2.detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.logger import setup_logger
+from detectron2.detectron2.utils.visualizer import Visualizer
 
 
 def create_instances(predictions, image_size):
@@ -43,10 +43,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="A script that visualizes the json predictions from COCO or LVIS dataset."
     )
-    parser.add_argument("--input", required=True, help="JSON file produced by the model")
+    parser.add_argument(
+        "--input", required=True, help="JSON file produced by the model"
+    )
     parser.add_argument("--output", required=True, help="output directory")
-    parser.add_argument("--dataset", help="name of the dataset", default="coco_2017_val")
-    parser.add_argument("--conf-threshold", default=0.5, type=float, help="confidence threshold")
+    parser.add_argument(
+        "--dataset", help="name of the dataset", default="coco_2017_val"
+    )
+    parser.add_argument(
+        "--conf-threshold", default=0.5, type=float, help="confidence threshold"
+    )
     args = parser.parse_args()
 
     setup_logger()

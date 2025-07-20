@@ -14,9 +14,9 @@ in the config file and implement a new train_net.py to handle them.
 """
 import logging
 
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import LazyConfig, instantiate
-from detectron2.engine import (
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import LazyConfig, instantiate
+from detectron2.detectron2.engine import (
     AMPTrainer,
     SimpleTrainer,
     default_argument_parser,
@@ -25,9 +25,9 @@ from detectron2.engine import (
     hooks,
     launch,
 )
-from detectron2.engine.defaults import create_ddp_model
-from detectron2.evaluation import inference_on_dataset, print_csv_format
-from detectron2.utils import comm
+from detectron2.detectron2.engine.defaults import create_ddp_model
+from detectron2.detectron2.evaluation import inference_on_dataset, print_csv_format
+from detectron2.detectron2.utils import comm
 
 logger = logging.getLogger("detectron2")
 
@@ -73,7 +73,9 @@ def do_train(args, cfg):
     train_loader = instantiate(cfg.dataloader.train)
 
     model = create_ddp_model(model, **cfg.train.ddp)
-    trainer = (AMPTrainer if cfg.train.amp.enabled else SimpleTrainer)(model, train_loader, optim)
+    trainer = (AMPTrainer if cfg.train.amp.enabled else SimpleTrainer)(
+        model, train_loader, optim
+    )
     checkpointer = DetectionCheckpointer(
         model,
         cfg.train.output_dir,

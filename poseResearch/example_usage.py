@@ -223,7 +223,8 @@ def example_8_large_video_batch_processing(video_path: str):
 
 
 def example_9_detectron2_from_video(video_path: str):
-    """Load video and run pipeline."""
+    """Load video and run pipeline.
+    To use this example, put a checkpoint into detectron2/model_zoo/checkpoints"""
     from estimation.preprocess.no_preprocess import NoPreprocess
     from estimation.pose2D.detectron2_estimation import Detectron2Estimation
     from estimation.pose3D.motionbert_estimation import MotionBERTEstimation

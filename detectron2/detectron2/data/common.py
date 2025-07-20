@@ -11,9 +11,14 @@ import torch
 import torch.utils.data as data
 from torch.utils.data.sampler import Sampler
 
-from detectron2.utils.serialize import PicklableWrapper
+from detectron2.detectron2.utils.serialize import PicklableWrapper
 
-__all__ = ["MapDataset", "DatasetFromList", "AspectRatioGroupedDataset", "ToIterableDataset"]
+__all__ = [
+    "MapDataset",
+    "DatasetFromList",
+    "AspectRatioGroupedDataset",
+    "ToIterableDataset",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +177,9 @@ class _TorchSerializedList:
         self._addr = np.asarray([len(x) for x in self._lst], dtype=np.int64)
         self._addr = torch.from_numpy(np.cumsum(self._addr))
         self._lst = torch.from_numpy(np.concatenate(self._lst))
-        logger.info("Serialized dataset takes {:.2f} MiB".format(len(self._lst) / 1024**2))
+        logger.info(
+            "Serialized dataset takes {:.2f} MiB".format(len(self._lst) / 1024**2)
+        )
 
     def __len__(self):
         return len(self._addr)
@@ -291,7 +298,9 @@ class ToIterableDataset(data.IterableDataset):
             # will run sampler in every of the N worker. So we should only keep 1/N of the ids on
             # each worker. The assumption is that sampler is cheap to iterate so it's fine to
             # discard ids in workers.
-            sampler = _shard_iterator_dataloader_worker(self.sampler, self.shard_chunk_size)
+            sampler = _shard_iterator_dataloader_worker(
+                self.sampler, self.shard_chunk_size
+            )
         for idx in sampler:
             yield self.dataset[idx]
 

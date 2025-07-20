@@ -5,10 +5,12 @@ from dataclasses import fields
 from typing import Any, List
 import torch
 
-from detectron2.structures import Instances
+from detectron2.detectron2.structures import Instances
 
 
-def densepose_inference(densepose_predictor_output: Any, detections: List[Instances]) -> None:
+def densepose_inference(
+    densepose_predictor_output: Any, detections: List[Instances]
+) -> None:
     """
     Splits DensePose predictor outputs into chunks, each chunk corresponds to
     detections on one image. Predictor output chunks are stored in `pred_densepose`

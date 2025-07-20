@@ -20,12 +20,18 @@ import logging
 import os
 from collections import OrderedDict
 
-import detectron2.utils.comm as comm
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import get_cfg
-from detectron2.data import MetadataCatalog
-from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, hooks, launch
-from detectron2.evaluation import (
+import detectron2.detectron2.utils.comm as comm
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import get_cfg
+from detectron2.detectron2.data import MetadataCatalog
+from detectron2.detectron2.engine import (
+    DefaultTrainer,
+    default_argument_parser,
+    default_setup,
+    hooks,
+    launch,
+)
+from detectron2.detectron2.evaluation import (
     CityscapesInstanceEvaluator,
     CityscapesSemSegEvaluator,
     COCOEvaluator,
@@ -36,7 +42,7 @@ from detectron2.evaluation import (
     SemSegEvaluator,
     verify_results,
 )
-from detectron2.modeling import GeneralizedRCNNWithTTA
+from detectron2.detectron2.modeling import GeneralizedRCNNWithTTA
 
 
 def build_evaluator(cfg, dataset_name, output_folder=None):
@@ -72,7 +78,9 @@ def build_evaluator(cfg, dataset_name, output_folder=None):
         return LVISEvaluator(dataset_name, output_dir=output_folder)
     if len(evaluator_list) == 0:
         raise NotImplementedError(
-            "no Evaluator for the dataset {} with the type {}".format(dataset_name, evaluator_type)
+            "no Evaluator for the dataset {} with the type {}".format(
+                dataset_name, evaluator_type
+            )
         )
     elif len(evaluator_list) == 1:
         return evaluator_list[0]

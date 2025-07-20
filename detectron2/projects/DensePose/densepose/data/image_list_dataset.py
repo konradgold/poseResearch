@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import torch
 from torch.utils.data.dataset import Dataset
 
-from detectron2.data.detection_utils import read_image
+from detectron2.detectron2.data.detection_utils import read_image
 
 ImageTransform = Callable[[torch.Tensor], torch.Tensor]
 
@@ -59,7 +59,9 @@ class ImageListDataset(Dataset):
         transform = self.transform
 
         try:
-            image = torch.from_numpy(np.ascontiguousarray(read_image(fpath, format="BGR")))
+            image = torch.from_numpy(
+                np.ascontiguousarray(read_image(fpath, format="BGR"))
+            )
             image = image.permute(2, 0, 1).unsqueeze(0).float()  # HWC -> NCHW
             if transform is not None:
                 image = transform(image)

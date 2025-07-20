@@ -4,7 +4,7 @@
 
 from typing import Any, Tuple
 
-from detectron2.structures import BitMasks, Boxes
+from detectron2.detectron2.structures import BitMasks, Boxes
 
 from .base import BaseConverter
 
@@ -30,7 +30,7 @@ class ToMaskConverter(BaseConverter):
         boxes: Boxes,
         image_size_hw: ImageSizeType,
         *args,
-        **kwargs
+        **kwargs,
     ) -> BitMasks:
         """
         Convert DensePose predictor outputs to BitMasks using some registered

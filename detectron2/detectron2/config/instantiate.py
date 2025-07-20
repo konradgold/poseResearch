@@ -5,7 +5,7 @@ import dataclasses
 import logging
 from typing import Any
 
-from detectron2.utils.registry import _convert_target_to_string, locate
+from detectron2.detectron2.utils.registry import _convert_target_to_string, locate
 
 __all__ = ["dump_dataclass", "instantiate"]
 
@@ -58,7 +58,9 @@ def instantiate(cfg):
 
     # If input is a DictConfig backed by dataclasses (i.e. omegaconf's structured config),
     # instantiate it to the actual dataclass.
-    if isinstance(cfg, DictConfig) and dataclasses.is_dataclass(cfg._metadata.object_type):
+    if isinstance(cfg, DictConfig) and dataclasses.is_dataclass(
+        cfg._metadata.object_type
+    ):
         return OmegaConf.to_object(cfg)
 
     if isinstance(cfg, abc.Mapping) and "_target_" in cfg:

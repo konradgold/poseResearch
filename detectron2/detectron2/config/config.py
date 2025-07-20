@@ -6,7 +6,7 @@ import inspect
 import logging
 from fvcore.common.config import CfgNode as _CfgNode
 
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.file_io import PathManager
 
 
 class CfgNode(_CfgNode):
@@ -42,7 +42,9 @@ class CfgNode(_CfgNode):
             cfg_filename: config filename
             allow_unsafe: allow unsafe yaml syntax
         """
-        assert PathManager.isfile(cfg_filename), f"Config file '{cfg_filename}' does not exist!"
+        assert PathManager.isfile(
+            cfg_filename
+        ), f"Config file '{cfg_filename}' does not exist!"
         loaded_cfg = self.load_yaml_with_base(cfg_filename, allow_unsafe=allow_unsafe)
         loaded_cfg = type(self)(loaded_cfg)
 
@@ -61,7 +63,9 @@ class CfgNode(_CfgNode):
             from .compat import guess_version
 
             loaded_ver = guess_version(loaded_cfg, cfg_filename)
-        assert loaded_ver <= self.VERSION, "Cannot merge a v{} config into a v{} config.".format(
+        assert (
+            loaded_ver <= self.VERSION
+        ), "Cannot merge a v{} config into a v{} config.".format(
             loaded_ver, self.VERSION
         )
 
@@ -115,7 +119,7 @@ def set_global_cfg(cfg: CfgNode) -> None:
     Assume that the given "cfg" has the key "KEY", after calling
     `set_global_cfg(cfg)`, the key can be accessed by:
     ::
-        from detectron2.config import global_cfg
+        from detectron2.detectron2.config import global_cfg
         print(global_cfg.KEY)
 
     By using a hacky global config, you can access these configs anywhere,
@@ -183,7 +187,9 @@ def configurable(init_func=None, *, from_config=None):
                     "Class with @configurable must have a 'from_config' classmethod."
                 ) from e
             if not inspect.ismethod(from_config_func):
-                raise TypeError("Class with @configurable must have a 'from_config' classmethod.")
+                raise TypeError(
+                    "Class with @configurable must have a 'from_config' classmethod."
+                )
 
             if _called_with_cfg(*args, **kwargs):
                 explicit_args = _get_args_from_config(from_config_func, *args, **kwargs)
@@ -233,7 +239,9 @@ def _get_args_from_config(from_config_func, *args, **kwargs):
         param.kind in [param.VAR_POSITIONAL, param.VAR_KEYWORD]
         for param in signature.parameters.values()
     )
-    if support_var_arg:  # forward all arguments to from_config, if from_config accepts them
+    if (
+        support_var_arg
+    ):  # forward all arguments to from_config, if from_config accepts them
         ret = from_config_func(*args, **kwargs)
     else:
         # forward supported arguments to from_config

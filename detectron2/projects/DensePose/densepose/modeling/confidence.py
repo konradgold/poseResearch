@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from detectron2.config import CfgNode
+from detectron2.detectron2.config import CfgNode
 
 
 class DensePoseUVConfidenceType(Enum):
@@ -66,7 +66,9 @@ class DensePoseConfidenceModelConfig:
             uv_confidence=DensePoseUVConfidenceConfig(
                 enabled=cfg.MODEL.ROI_DENSEPOSE_HEAD.UV_CONFIDENCE.ENABLED,
                 epsilon=cfg.MODEL.ROI_DENSEPOSE_HEAD.UV_CONFIDENCE.EPSILON,
-                type=DensePoseUVConfidenceType(cfg.MODEL.ROI_DENSEPOSE_HEAD.UV_CONFIDENCE.TYPE),
+                type=DensePoseUVConfidenceType(
+                    cfg.MODEL.ROI_DENSEPOSE_HEAD.UV_CONFIDENCE.TYPE
+                ),
             ),
             segm_confidence=DensePoseSegmConfidenceConfig(
                 enabled=cfg.MODEL.ROI_DENSEPOSE_HEAD.SEGM_CONFIDENCE.ENABLED,

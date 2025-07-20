@@ -4,9 +4,9 @@ from typing import Optional
 import pkg_resources
 import torch
 
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import CfgNode, LazyConfig, get_cfg, instantiate
-from detectron2.modeling import build_model
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import CfgNode, LazyConfig, get_cfg, instantiate
+from detectron2.detectron2.modeling import build_model
 
 
 class _ModelZooUrls:
@@ -121,7 +121,9 @@ def get_checkpoint_url(config_path):
     """
     url = _ModelZooUrls.query(config_path)
     if url is None:
-        raise RuntimeError("Pretrained model for {} is not available!".format(config_path))
+        raise RuntimeError(
+            "Pretrained model for {} is not available!".format(config_path)
+        )
     return url
 
 

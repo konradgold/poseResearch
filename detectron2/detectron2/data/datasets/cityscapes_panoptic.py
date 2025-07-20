@@ -3,9 +3,9 @@ import json
 import logging
 import os
 
-from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.data.datasets.builtin_meta import CITYSCAPES_CATEGORIES
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.data import DatasetCatalog, MetadataCatalog
+from detectron2.detectron2.data.datasets.builtin_meta import CITYSCAPES_CATEGORIES
+from detectron2.detectron2.utils.file_io import PathManager
 
 """
 This file contains functions to register the Cityscapes panoptic dataset to the DatasetCatalog.
@@ -85,7 +85,8 @@ def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
     ret = []
     for image_file, label_file, segments_info in files:
         sem_label_file = (
-            image_file.replace("leftImg8bit", "gtFine").split(".")[0] + "_labelTrainIds.png"
+            image_file.replace("leftImg8bit", "gtFine").split(".")[0]
+            + "_labelTrainIds.png"
         )
         segments_info = [_convert_category_id(x, meta) for x in segments_info]
         ret.append(
@@ -173,7 +174,10 @@ def register_all_cityscapes_panoptic(root):
         gt_json = os.path.join(root, gt_json)
 
         DatasetCatalog.register(
-            key, lambda x=image_dir, y=gt_dir, z=gt_json: load_cityscapes_panoptic(x, y, z, meta)
+            key,
+            lambda x=image_dir, y=gt_dir, z=gt_json: load_cityscapes_panoptic(
+                x, y, z, meta
+            ),
         )
         MetadataCatalog.get(key).set(
             panoptic_root=gt_dir,

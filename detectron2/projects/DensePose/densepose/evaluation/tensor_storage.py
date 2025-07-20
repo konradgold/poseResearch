@@ -11,8 +11,8 @@ from operator import mul
 from typing import BinaryIO, Dict, Optional, Tuple
 import torch
 
-from detectron2.utils.comm import gather, get_rank
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.comm import gather, get_rank
+from detectron2.detectron2.utils.file_io import PathManager
 
 
 @dataclass
@@ -21,7 +21,9 @@ class SizeData:
     shape: Tuple[int]
 
 
-def _calculate_record_field_size_b(data_schema: Dict[str, SizeData], field_name: str) -> int:
+def _calculate_record_field_size_b(
+    data_schema: Dict[str, SizeData], field_name: str
+) -> int:
     schema = data_schema[field_name]
     element_size_b = np.dtype(schema.dtype).itemsize
     record_field_size_b = reduce(mul, schema.shape) * element_size_b
@@ -39,7 +41,9 @@ def _calculate_record_size_b(data_schema: Dict[str, SizeData]) -> int:
 def _calculate_record_field_sizes_b(data_schema: Dict[str, SizeData]) -> Dict[str, int]:
     field_sizes_b = {}
     for field_name in data_schema:
-        field_sizes_b[field_name] = _calculate_record_field_size_b(data_schema, field_name)
+        field_sizes_b[field_name] = _calculate_record_field_size_b(
+            data_schema, field_name
+        )
     return field_sizes_b
 
 
@@ -144,7 +148,9 @@ class SingleProcessFileTensorStorage(SingleProcessTensorStorage):
 
     def __init__(self, data_schema: Dict[str, SizeData], fpath: str, mode: str):
         self.fpath = fpath
-        assert "b" in mode, f"Tensor storage should be opened in binary mode, got '{mode}'"
+        assert (
+            "b" in mode
+        ), f"Tensor storage should be opened in binary mode, got '{mode}'"
         if "w" in mode:
             # pyre-fixme[6]: For 2nd argument expected `Union[typing_extensions.Liter...
             file_h = PathManager.open(fpath, mode)
@@ -187,7 +193,9 @@ class MultiProcessTensorStorage:
 
 
 class MultiProcessFileTensorStorage(MultiProcessTensorStorage):
-    def __init__(self, data_schema: Dict[str, SizeData], rank_to_fpath: Dict[int, str], mode: str):
+    def __init__(
+        self, data_schema: Dict[str, SizeData], rank_to_fpath: Dict[int, str], mode: str
+    ):
         rank_to_storage = {
             rank: SingleProcessFileTensorStorage(data_schema, fpath, mode)
             for rank, fpath in rank_to_fpath.items()
@@ -196,7 +204,9 @@ class MultiProcessFileTensorStorage(MultiProcessTensorStorage):
 
 
 class MultiProcessRamTensorStorage(MultiProcessTensorStorage):
-    def __init__(self, data_schema: Dict[str, SizeData], rank_to_buffer: Dict[int, io.BytesIO]):
+    def __init__(
+        self, data_schema: Dict[str, SizeData], rank_to_buffer: Dict[int, io.BytesIO]
+    ):
         rank_to_storage = {
             rank: SingleProcessRamTensorStorage(data_schema, buf)
             for rank, buf in rank_to_buffer.items()
@@ -214,7 +224,9 @@ def _ram_storage_gather(
     if get_rank() != dst_rank:
         return None
     rank_to_buffer = {i: io.BytesIO(data_list[i]) for i in range(len(data_list))}
-    multiprocess_storage = MultiProcessRamTensorStorage(storage.data_schema, rank_to_buffer)
+    multiprocess_storage = MultiProcessRamTensorStorage(
+        storage.data_schema, rank_to_buffer
+    )
     return multiprocess_storage
 
 

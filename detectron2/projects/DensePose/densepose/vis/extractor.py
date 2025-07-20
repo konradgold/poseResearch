@@ -5,15 +5,18 @@ import logging
 from typing import List, Optional, Sequence, Tuple
 import torch
 
-from detectron2.layers.nms import batched_nms
-from detectron2.structures.instances import Instances
+from detectron2.detectron2.layers.nms import batched_nms
+from detectron2.detectron2.structures.instances import Instances
 
 from densepose.converters import ToChartResultConverterWithConfidences
 from densepose.structures import (
     DensePoseChartResultWithConfidences,
     DensePoseEmbeddingPredictorOutput,
 )
-from densepose.vis.bounding_box import BoundingBoxVisualizer, ScoredBoundingBoxVisualizer
+from densepose.vis.bounding_box import (
+    BoundingBoxVisualizer,
+    ScoredBoundingBoxVisualizer,
+)
 from densepose.vis.densepose_outputs_vertex import DensePoseOutputsVertexVisualizer
 from densepose.vis.densepose_results import DensePoseResultsVisualizer
 
@@ -48,7 +51,9 @@ def create_extractor(visualizer: object):
     elif isinstance(visualizer, DensePoseResultsVisualizer):
         return DensePoseResultExtractor()
     elif isinstance(visualizer, ScoredBoundingBoxVisualizer):
-        return CompoundExtractor([extract_boxes_xywh_from_instances, extract_scores_from_instances])
+        return CompoundExtractor(
+            [extract_boxes_xywh_from_instances, extract_scores_from_instances]
+        )
     elif isinstance(visualizer, BoundingBoxVisualizer):
         return extract_boxes_xywh_from_instances
     elif isinstance(visualizer, DensePoseOutputsVertexVisualizer):
@@ -101,7 +106,9 @@ class DensePoseResultExtractor:
                 dpout = dpout[select]
                 boxes_xyxy = boxes_xyxy[select]
             converter = ToChartResultConverterWithConfidences()
-            results = [converter.convert(dpout[i], boxes_xyxy[[i]]) for i in range(len(dpout))]
+            results = [
+                converter.convert(dpout[i], boxes_xyxy[[i]]) for i in range(len(dpout))
+            ]
             return results, boxes_xywh
         else:
             return None, None
@@ -117,7 +124,9 @@ class DensePoseOutputsExtractor:
         instances: Instances,
         select=None,
     ) -> Tuple[
-        Optional[DensePoseEmbeddingPredictorOutput], Optional[torch.Tensor], Optional[List[int]]
+        Optional[DensePoseEmbeddingPredictorOutput],
+        Optional[torch.Tensor],
+        Optional[List[int]],
     ]:
         if not (instances.has("pred_densepose") and instances.has("pred_boxes")):
             return None, None, None
@@ -176,7 +185,9 @@ class NmsFilteredExtractor:
             torch.zeros(len(scores), dtype=torch.int32),
             iou_threshold=self.iou_threshold,
         ).squeeze()
-        select_local = torch.zeros(len(boxes_xywh), dtype=torch.bool, device=boxes_xywh.device)
+        select_local = torch.zeros(
+            len(boxes_xywh), dtype=torch.bool, device=boxes_xywh.device
+        )
         select_local[select_local_idx] = True
         select = select_local if select is None else (select & select_local)
         return self.extractor(instances, select=select)

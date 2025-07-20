@@ -3,7 +3,7 @@
 import unittest
 import torch
 
-from detectron2.structures import BitMasks, Boxes, Instances
+from detectron2.detectron2.structures import BitMasks, Boxes, Instances
 
 from .common import get_model
 

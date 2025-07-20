@@ -5,12 +5,18 @@ from typing import Dict
 import torch
 import torch.nn.functional as F
 
-from detectron2.layers import ShapeSpec, cat
-from detectron2.layers.roi_align_rotated import ROIAlignRotated
-from detectron2.modeling import poolers
-from detectron2.modeling.proposal_generator import rpn
-from detectron2.modeling.roi_heads.mask_head import mask_rcnn_inference
-from detectron2.structures import Boxes, ImageList, Instances, Keypoints, RotatedBoxes
+from detectron2.detectron2.layers import ShapeSpec, cat
+from detectron2.detectron2.layers.roi_align_rotated import ROIAlignRotated
+from detectron2.detectron2.modeling import poolers
+from detectron2.detectron2.modeling.proposal_generator import rpn
+from detectron2.detectron2.modeling.roi_heads.mask_head import mask_rcnn_inference
+from detectron2.detectron2.structures import (
+    Boxes,
+    ImageList,
+    Instances,
+    Keypoints,
+    RotatedBoxes,
+)
 
 from .shared import alias, to_device
 
@@ -91,12 +97,16 @@ class InstancesList:
                 torch._check(len(self) == data_len)
             assert (
                 len(self) == data_len
-            ), "Adding a field of length {} to a Instances of length {}".format(data_len, len(self))
+            ), "Adding a field of length {} to a Instances of length {}".format(
+                data_len, len(self)
+            )
         self.batch_extra_fields[name] = value
 
     def __getattr__(self, name):
         if name not in self.batch_extra_fields:
-            raise AttributeError("Cannot find field '{}' in the given Instances!".format(name))
+            raise AttributeError(
+                "Cannot find field '{}' in the given Instances!".format(name)
+            )
         return self.batch_extra_fields[name]
 
     def __len__(self):
@@ -123,7 +133,9 @@ class InstancesList:
 
         ret = []
         for i, info in enumerate(instances_list.im_info):
-            instances = Instances(torch.Size([int(info[0].item()), int(info[1].item())]))
+            instances = Instances(
+                torch.Size([int(info[0].item()), int(info[1].item())])
+            )
 
             ids = instances_list.indices == i
             for k, v in instances_list.batch_extra_fields.items():
@@ -185,9 +197,9 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
         if self.tensor_mode:
             im_info = images.image_sizes
         else:
-            im_info = torch.tensor([[im_sz[0], im_sz[1], 1.0] for im_sz in images.image_sizes]).to(
-                images.tensor.device
-            )
+            im_info = torch.tensor(
+                [[im_sz[0], im_sz[1], 1.0] for im_sz in images.image_sizes]
+            ).to(images.tensor.device)
         assert isinstance(im_info, torch.Tensor)
 
         rpn_rois_list = []
@@ -234,7 +246,9 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
             rpn_post_nms_topN = self.post_nms_topk[self.training]
 
             device = rpn_rois_list[0].device
-            input_list = [to_device(x, "cpu") for x in (rpn_rois_list + rpn_roi_probs_list)]
+            input_list = [
+                to_device(x, "cpu") for x in (rpn_rois_list + rpn_roi_probs_list)
+            ]
 
             # TODO remove this after confirming rpn_max_level/rpn_min_level
             # is not needed in CollectRpnProposals.
@@ -258,7 +272,9 @@ class Caffe2RPN(Caffe2Compatible, rpn.RPN):
             rpn_rois = to_device(rpn_rois, device)
             rpn_roi_probs = []
 
-        proposals = self.c2_postprocess(im_info, rpn_rois, rpn_roi_probs, self.tensor_mode)
+        proposals = self.c2_postprocess(
+            im_info, rpn_rois, rpn_roi_probs, self.tensor_mode
+        )
         return proposals, {}
 
     def forward(self, images, features, gt_instances=None):
@@ -377,11 +393,15 @@ class Caffe2ROIPooler(Caffe2Compatible, poolers.ROIPooler):
             "Caffe2 export requires tracing with a model checkpoint + input that can produce valid"
             " detections. But no detections were obtained with the given checkpoint and input!"
         )
-        roi_feat = torch.ops._caffe2.BatchPermutation(roi_feat_shuffled, rois_idx_restore_int32)
+        roi_feat = torch.ops._caffe2.BatchPermutation(
+            roi_feat_shuffled, rois_idx_restore_int32
+        )
         return roi_feat
 
 
-def caffe2_fast_rcnn_outputs_inference(tensor_mode, box_predictor, predictions, proposals):
+def caffe2_fast_rcnn_outputs_inference(
+    tensor_mode, box_predictor, predictions, proposals
+):
     """equivalent to FastRCNNOutputLayers.inference"""
     num_classes = box_predictor.num_classes
     score_thresh = box_predictor.test_score_thresh
@@ -433,7 +453,9 @@ def caffe2_fast_rcnn_outputs_inference(tensor_mode, box_predictor, predictions, 
         im_info = proposals[0].image_size
         rois = rois.tensor
     else:
-        im_info = torch.tensor([[sz[0], sz[1], 1.0] for sz in [x.image_size for x in proposals]])
+        im_info = torch.tensor(
+            [[sz[0], sz[1], 1.0] for sz in [x.image_size for x in proposals]]
+        )
         batch_ids = cat(
             [
                 torch.full((b, 1), i, dtype=dtype, device=device)
@@ -547,7 +569,9 @@ class Caffe2MaskRCNNInference:
         return caffe2_mask_rcnn_inference(pred_mask_logits, pred_instances)
 
 
-def caffe2_keypoint_rcnn_inference(use_heatmap_max_keypoint, pred_keypoint_logits, pred_instances):
+def caffe2_keypoint_rcnn_inference(
+    use_heatmap_max_keypoint, pred_keypoint_logits, pred_instances
+):
     # just return the keypoint heatmap for now,
     # there will be option to call HeatmapMaxKeypointOp
     output = alias(pred_keypoint_logits, "kps_score")

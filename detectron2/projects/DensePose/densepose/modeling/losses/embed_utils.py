@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 import torch
 
-from detectron2.structures import BoxMode, Instances
+from detectron2.detectron2.structures import BoxMode, Instances
 
 from .utils import AnnotationsAccumulator
 
@@ -53,10 +53,14 @@ class CseAnnotationsAccumulator(AnnotationsAccumulator):
             instances_one_image (Instances): instances data to accumulate
         """
         boxes_xywh_est = BoxMode.convert(
-            instances_one_image.proposal_boxes.tensor.clone(), BoxMode.XYXY_ABS, BoxMode.XYWH_ABS
+            instances_one_image.proposal_boxes.tensor.clone(),
+            BoxMode.XYXY_ABS,
+            BoxMode.XYWH_ABS,
         )
         boxes_xywh_gt = BoxMode.convert(
-            instances_one_image.gt_boxes.tensor.clone(), BoxMode.XYXY_ABS, BoxMode.XYWH_ABS
+            instances_one_image.gt_boxes.tensor.clone(),
+            BoxMode.XYXY_ABS,
+            BoxMode.XYWH_ABS,
         )
         n_matches = len(boxes_xywh_gt)
         assert n_matches == len(
@@ -81,7 +85,9 @@ class CseAnnotationsAccumulator(AnnotationsAccumulator):
                 self._do_accumulate(box_xywh_gt, box_xywh_est, dp_gt)
             self.nxt_bbox_index += 1
 
-    def _do_accumulate(self, box_xywh_gt: torch.Tensor, box_xywh_est: torch.Tensor, dp_gt: Any):
+    def _do_accumulate(
+        self, box_xywh_gt: torch.Tensor, box_xywh_est: torch.Tensor, dp_gt: Any
+    ):
         """
         Accumulate instances data for one image, given that the data is not empty
 
@@ -105,7 +111,9 @@ class CseAnnotationsAccumulator(AnnotationsAccumulator):
         self.point_bbox_with_dp_indices.append(
             torch.full_like(dp_gt.vertex_ids, self.nxt_bbox_with_dp_index)
         )
-        self.point_bbox_indices.append(torch.full_like(dp_gt.vertex_ids, self.nxt_bbox_index))
+        self.point_bbox_indices.append(
+            torch.full_like(dp_gt.vertex_ids, self.nxt_bbox_index)
+        )
         self.bbox_indices.append(self.nxt_bbox_index)
         self.nxt_bbox_with_dp_index += 1
 
@@ -127,7 +135,9 @@ class CseAnnotationsAccumulator(AnnotationsAccumulator):
             vertex_ids_gt=torch.cat(self.vertex_ids_gt, 0),
             # ignore segmentation annotations, if not all the instances contain those
             coarse_segm_gt=(
-                torch.cat(self.s_gt, 0) if len(self.s_gt) == len(self.bbox_xywh_gt) else None
+                torch.cat(self.s_gt, 0)
+                if len(self.s_gt) == len(self.bbox_xywh_gt)
+                else None
             ),
             bbox_xywh_gt=torch.cat(self.bbox_xywh_gt, 0),
             bbox_xywh_est=torch.cat(self.bbox_xywh_est, 0),

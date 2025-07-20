@@ -5,8 +5,8 @@ import torch
 from torch import device
 from torch.nn import functional as F
 
-from detectron2.layers.wrappers import move_device_like, shapes_to_tensor
-from detectron2.utils.torch_version_utils import min_torch_version
+from detectron2.detectron2.layers.wrappers import move_device_like, shapes_to_tensor
+from detectron2.detectron2.utils.torch_version_utils import min_torch_version
 
 
 class ImageList:
@@ -99,7 +99,9 @@ class ImageList:
         if size_divisibility > 1:
             stride = size_divisibility
             # the last two dims are H,W, both subject to divisibility requirement
-            max_size = (max_size + (stride - 1)).div(stride, rounding_mode="floor") * stride
+            max_size = (max_size + (stride - 1)).div(
+                stride, rounding_mode="floor"
+            ) * stride
 
         # handle weirdness of scripting and tracing ...
         if torch.jit.is_scripting():
@@ -119,12 +121,16 @@ class ImageList:
                 if min_torch_version("2.6.0") and torch.compiler.is_compiling():
                     torch._check(u0.item() >= 0)
                     torch._check(u1.item() >= 0)
-            batched_imgs = F.pad(tensors[0], padding_size, value=pad_value).unsqueeze_(0)
+            batched_imgs = F.pad(tensors[0], padding_size, value=pad_value).unsqueeze_(
+                0
+            )
         else:
             # max_size can be a tensor in tracing mode, therefore convert to list
             batch_shape = [len(tensors)] + list(tensors[0].shape[:-2]) + list(max_size)
             device = (
-                None if torch.jit.is_scripting() else ("cpu" if torch.jit.is_tracing() else None)
+                None
+                if torch.jit.is_scripting()
+                else ("cpu" if torch.jit.is_tracing() else None)
             )
             batched_imgs = tensors[0].new_full(batch_shape, pad_value, device=device)
             batched_imgs = move_device_like(batched_imgs, tensors[0])

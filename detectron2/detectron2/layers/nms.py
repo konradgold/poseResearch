@@ -5,7 +5,7 @@ import torch
 from torchvision.ops import boxes as box_ops
 from torchvision.ops import nms  # noqa . for compatibility
 
-from detectron2.layers.wrappers import disable_torch_compiler
+from detectron2.detectron2.layers.wrappers import disable_torch_compiler
 
 
 def batched_nms(

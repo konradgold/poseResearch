@@ -1,14 +1,14 @@
 from omegaconf import OmegaConf
 
-import detectron2.data.transforms as T
-from detectron2.config import LazyCall as L
-from detectron2.data import (
+import detectron2.detectron2.data.transforms as T
+from detectron2.detectron2.config import LazyCall as L
+from detectron2.detectron2.data import (
     DatasetMapper,
     build_detection_test_loader,
     build_detection_train_loader,
     get_detection_dataset_dicts,
 )
-from detectron2.evaluation import COCOEvaluator
+from detectron2.detectron2.evaluation import COCOEvaluator
 
 dataloader = OmegaConf.create()
 

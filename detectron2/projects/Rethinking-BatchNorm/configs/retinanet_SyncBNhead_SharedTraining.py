@@ -2,7 +2,7 @@ from typing import List
 import torch
 from torch import Tensor, nn
 
-from detectron2.modeling.meta_arch.retinanet import RetinaNetHead
+from detectron2.detectron2.modeling.meta_arch.retinanet import RetinaNetHead
 
 
 def apply_sequential(inputs, modules):

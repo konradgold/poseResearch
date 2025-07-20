@@ -7,8 +7,8 @@ from typing import Optional, Tuple
 import torch
 from torch.nn import functional as F
 
-from detectron2.config import CfgNode
-from detectron2.structures import Instances
+from detectron2.detectron2.config import CfgNode
+from detectron2.detectron2.structures import Instances
 
 from densepose.converters.base import IntTupleBox
 

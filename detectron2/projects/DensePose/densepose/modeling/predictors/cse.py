@@ -5,8 +5,8 @@
 import torch
 from torch import nn
 
-from detectron2.config import CfgNode
-from detectron2.layers import ConvTranspose2d, interpolate
+from detectron2.detectron2.config import CfgNode
+from detectron2.detectron2.layers import ConvTranspose2d, interpolate
 
 from ...structures import DensePoseEmbeddingPredictorOutput
 from ..utils import initialize_module_params
@@ -55,7 +55,10 @@ class DensePoseEmbeddingPredictor(nn.Module):
                 by applying the scale factor to H and W
         """
         return interpolate(
-            tensor_nchw, scale_factor=self.scale_factor, mode="bilinear", align_corners=False
+            tensor_nchw,
+            scale_factor=self.scale_factor,
+            mode="bilinear",
+            align_corners=False,
         )
 
     def forward(self, head_outputs):
@@ -69,4 +72,6 @@ class DensePoseEmbeddingPredictor(nn.Module):
         coarse_segm_lowres = self.coarse_segm_lowres(head_outputs)
         embed = self.interp2d(embed_lowres)
         coarse_segm = self.interp2d(coarse_segm_lowres)
-        return DensePoseEmbeddingPredictorOutput(embedding=embed, coarse_segm=coarse_segm)
+        return DensePoseEmbeddingPredictorOutput(
+            embedding=embed, coarse_segm=coarse_segm
+        )

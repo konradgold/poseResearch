@@ -84,7 +84,7 @@ def collect_env_info():
         data.append(("detectron2", "imported a wrong installation"))
 
     try:
-        import detectron2._C as _C
+        import detectron2.detectron2._C as _C
     except ImportError as e:
         data.append(("detectron2._C", f"not built correctly: {e}"))
 
@@ -135,7 +135,9 @@ def collect_env_info():
     data.append(("PyTorch", torch_version + " @" + os.path.dirname(torch.__file__)))
     data.append(("PyTorch debug build", torch.version.debug))
     try:
-        data.append(("torch._C._GLIBCXX_USE_CXX11_ABI", torch._C._GLIBCXX_USE_CXX11_ABI))
+        data.append(
+            ("torch._C._GLIBCXX_USE_CXX11_ABI", torch._C._GLIBCXX_USE_CXX11_ABI)
+        )
     except Exception:
         pass
 
@@ -178,7 +180,9 @@ def collect_env_info():
         data.append(
             (
                 "torchvision",
-                str(torchvision.__version__) + " @" + os.path.dirname(torchvision.__file__),
+                str(torchvision.__version__)
+                + " @"
+                + os.path.dirname(torchvision.__file__),
             )
         )
         if has_cuda:
@@ -223,21 +227,25 @@ def test_nccl_ops():
 
         dist_url = "file:///tmp/nccl_tmp_file"
         print("Testing NCCL connectivity ... this should not hang.")
-        mp.spawn(_test_nccl_worker, nprocs=num_gpu, args=(num_gpu, dist_url), daemon=False)
+        mp.spawn(
+            _test_nccl_worker, nprocs=num_gpu, args=(num_gpu, dist_url), daemon=False
+        )
         print("NCCL succeeded.")
 
 
 def _test_nccl_worker(rank, num_gpu, dist_url):
     import torch.distributed as dist
 
-    dist.init_process_group(backend="NCCL", init_method=dist_url, rank=rank, world_size=num_gpu)
+    dist.init_process_group(
+        backend="NCCL", init_method=dist_url, rank=rank, world_size=num_gpu
+    )
     dist.barrier(device_ids=[rank])
 
 
 def main() -> None:
     global x
     try:
-        from detectron2.utils.collect_env import collect_env_info as f
+        from detectron2.detectron2.utils.collect_env import collect_env_info as f
 
         print(f())
     except ImportError:

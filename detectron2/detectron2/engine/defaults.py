@@ -21,28 +21,32 @@ from fvcore.nn.precise_bn import get_bn_modules
 from omegaconf import OmegaConf
 from torch.nn.parallel import DistributedDataParallel
 
-import detectron2.data.transforms as T
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import CfgNode, LazyConfig
-from detectron2.data import (
+import detectron2.detectron2.data.transforms as T
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import CfgNode, LazyConfig
+from detectron2.detectron2.data import (
     MetadataCatalog,
     build_detection_test_loader,
     build_detection_train_loader,
 )
-from detectron2.evaluation import (
+from detectron2.detectron2.evaluation import (
     DatasetEvaluator,
     inference_on_dataset,
     print_csv_format,
     verify_results,
 )
-from detectron2.modeling import build_model
-from detectron2.solver import build_lr_scheduler, build_optimizer
-from detectron2.utils import comm
-from detectron2.utils.collect_env import collect_env_info
-from detectron2.utils.env import seed_all_rng
-from detectron2.utils.events import CommonMetricPrinter, JSONWriter, TensorboardXWriter
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.logger import setup_logger
+from detectron2.detectron2.modeling import build_model
+from detectron2.detectron2.solver import build_lr_scheduler, build_optimizer
+from detectron2.detectron2.utils import comm
+from detectron2.detectron2.utils.collect_env import collect_env_info
+from detectron2.detectron2.utils.env import seed_all_rng
+from detectron2.detectron2.utils.events import (
+    CommonMetricPrinter,
+    JSONWriter,
+    TensorboardXWriter,
+)
+from detectron2.detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.logger import setup_logger
 
 from . import hooks
 from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase
@@ -106,18 +110,29 @@ Run on multiple machines:
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--config-file", default="", metavar="FILE", help="path to config file")
+    parser.add_argument(
+        "--config-file", default="", metavar="FILE", help="path to config file"
+    )
     parser.add_argument(
         "--resume",
         action="store_true",
         help="Whether to attempt to resume from the checkpoint directory. "
         "See documentation of `DefaultTrainer.resume_or_load()` for what it means.",
     )
-    parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
-    parser.add_argument("--num-gpus", type=int, default=1, help="number of gpus *per machine*")
-    parser.add_argument("--num-machines", type=int, default=1, help="total number of machines")
     parser.add_argument(
-        "--machine-rank", type=int, default=0, help="the rank of this machine (unique per machine)"
+        "--eval-only", action="store_true", help="perform evaluation only"
+    )
+    parser.add_argument(
+        "--num-gpus", type=int, default=1, help="number of gpus *per machine*"
+    )
+    parser.add_argument(
+        "--num-machines", type=int, default=1, help="total number of machines"
+    )
+    parser.add_argument(
+        "--machine-rank",
+        type=int,
+        default=0,
+        help="the rank of this machine (unique per machine)",
     )
 
     # PyTorch still may leave orphan processes in multi-gpu training.
@@ -215,7 +230,11 @@ def default_setup(cfg, args):
     setup_logger(output_dir, distributed_rank=rank, name="fvcore")
     logger = setup_logger(output_dir, distributed_rank=rank)
 
-    logger.info("Rank of current process: {}. World size: {}".format(rank, comm.get_world_size()))
+    logger.info(
+        "Rank of current process: {}. World size: {}".format(
+            rank, comm.get_world_size()
+        )
+    )
     logger.info("Environment info:\n" + collect_env_info())
 
     logger.info("Command line arguments: " + str(args))
@@ -223,7 +242,9 @@ def default_setup(cfg, args):
         logger.info(
             "Contents of args.config_file={}:\n{}".format(
                 args.config_file,
-                _highlight(PathManager.open(args.config_file, "r").read(), args.config_file),
+                _highlight(
+                    PathManager.open(args.config_file, "r").read(), args.config_file
+                ),
             )
         )
 
@@ -232,7 +253,9 @@ def default_setup(cfg, args):
         # config.yaml in output directory
         path = os.path.join(output_dir, "config.yaml")
         if isinstance(cfg, CfgNode):
-            logger.info("Running with full config:\n{}".format(_highlight(cfg.dump(), ".yaml")))
+            logger.info(
+                "Running with full config:\n{}".format(_highlight(cfg.dump(), ".yaml"))
+            )
             with PathManager.open(path, "w") as f:
                 f.write(cfg.dump())
         else:
@@ -250,7 +273,9 @@ def default_setup(cfg, args):
             cfg, "CUDNN_BENCHMARK", "train.cudnn_benchmark", default=False
         )
 
-    fp32_precision = _try_get_key(cfg, "FLOAT32_PRECISION", "train.float32_precision", default="")
+    fp32_precision = _try_get_key(
+        cfg, "FLOAT32_PRECISION", "train.float32_precision", default=""
+    )
     if fp32_precision != "":
         logger.info(f"Set fp32 precision to {fp32_precision}")
         _set_float32_precision(fp32_precision)
@@ -483,7 +508,11 @@ class DefaultTrainer(TrainerBase):
         # This is not always the best: if checkpointing has a different frequency,
         # some checkpoints may have more precise statistics than others.
         if comm.is_main_process():
-            ret.append(hooks.PeriodicCheckpointer(self.checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD))
+            ret.append(
+                hooks.PeriodicCheckpointer(
+                    self.checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD
+                )
+            )
 
         def test_and_save_results():
             self._last_eval_results = self.test(self.cfg, self.model)
@@ -658,7 +687,9 @@ Alternatively, you can call evaluation functions yourself (see Colab balloon tut
                 ), "Evaluator must return a dict on the main process. Got {} instead.".format(
                     results_i
                 )
-                logger.info("Evaluation results for {} in csv format:".format(dataset_name))
+                logger.info(
+                    "Evaluation results for {} in csv format:".format(dataset_name)
+                )
                 print_csv_format(results_i)
 
         if len(results) == 1:
@@ -721,7 +752,9 @@ Alternatively, you can call evaluation functions yourself (see Colab balloon tut
         bs = cfg.SOLVER.IMS_PER_BATCH = int(round(cfg.SOLVER.IMS_PER_BATCH * scale))
         lr = cfg.SOLVER.BASE_LR = cfg.SOLVER.BASE_LR * scale
         max_iter = cfg.SOLVER.MAX_ITER = int(round(cfg.SOLVER.MAX_ITER / scale))
-        warmup_iter = cfg.SOLVER.WARMUP_ITERS = int(round(cfg.SOLVER.WARMUP_ITERS / scale))
+        warmup_iter = cfg.SOLVER.WARMUP_ITERS = int(
+            round(cfg.SOLVER.WARMUP_ITERS / scale)
+        )
         cfg.SOLVER.STEPS = tuple(int(round(s / scale)) for s in cfg.SOLVER.STEPS)
         cfg.TEST.EVAL_PERIOD = int(round(cfg.TEST.EVAL_PERIOD / scale))
         cfg.SOLVER.CHECKPOINT_PERIOD = int(round(cfg.SOLVER.CHECKPOINT_PERIOD / scale))

@@ -3,9 +3,9 @@
 import os
 import torch
 
-from detectron2.config import get_cfg
-from detectron2.engine import default_setup
-from detectron2.modeling import build_model
+from detectron2.detectron2.config import get_cfg
+from detectron2.detectron2.engine import default_setup
+from detectron2.detectron2.modeling import build_model
 
 from densepose import add_densepose_config
 
@@ -21,7 +21,9 @@ def _get_base_config_dir():
     """
     Return the base directory for configurations
     """
-    return os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", _BASE_CONFIG_DIR)
+    return os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", _BASE_CONFIG_DIR
+    )
 
 
 def _get_evolution_config_dir():
