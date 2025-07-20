@@ -10,9 +10,6 @@ This script demonstrates how to:
 
 import sys
 from pathlib import Path
-import torch
-import numpy as np
-import json
 
 # Add current directory to path for imports
 sys.path.append(str(Path(__file__).parent))
@@ -30,12 +27,12 @@ def example_single_validation():
 
     # Load ground truth DataLoader from JSON
     gt_loader = ProcessManager()
-    gt_loader.load_json("dataloader/male2_t2_cam01/results_flatpose.json")
+    gt_loader.load_json("dataloader/male2_t2_cam22/results_flatpose.json")
     print("Loaded ground truth DataLoader from JSON")
 
     # Load 3D poses DataLoader from JSON
     poses_3d_loader = ProcessManager()
-    poses_3d_loader.load_json("dataloader/male2_t2_cam22/results_poselifting.json")
+    poses_3d_loader.load_json("dataloader/male2_t2_cam01/results_poselifting.json")
     print("Loaded 3D poses DataLoader from JSON")
 
     # Create validator
