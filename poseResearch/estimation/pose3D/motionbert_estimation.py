@@ -2,10 +2,22 @@ import numpy as np
 import os
 import torch
 import torch.nn as nn
+from typing import Literal
 from MotionBERT.lib.utils.tools import get_config
 from MotionBERT.lib.utils.learning import load_backbone
 from MotionBERT.lib.utils.utils_data import crop_scale
 from .pose_estimation_3D import ThreeDPoseEstimation
+
+MOTIONBERT_CONFIGS = {
+    "global_lite": "MotionBERT/configs/pose3d/MB_ft_h36m_global_lite.yaml",
+    "train_h36m": "MotionBERT/configs/pose3d/MB_train_h36m.yaml",
+    "ft_h36m": "MotionBERT/configs/pose3d/MB_ft_h36m.yaml",
+}
+MOTIONBERT_CHECKPOINTS = {
+    "global_lite": "MotionBERT/checkpoint/pose3d/MB_ft_h36m_global_lite-best_epoch.bin",  # unsure
+    "train_h36m": "MotionBERT/checkpoint/pose3d/MB_train_h36m-best_epoch.bin",  # H36M-SH, scratch, MPJPE: 39.2mm
+    "ft_h36m": "MotionBERT/checkpoint/pose3d/MB_ft_h36m-best_epoch.bin",  # H36M-SH, finetuned, MPJPE: 37.2mm
+}
 
 
 class MotionBERTEstimation(ThreeDPoseEstimation):
@@ -13,12 +25,15 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
     Class for MotionBERT 3D pose estimation.
     Input: 2D poses as a tensor of shape (P, T, 17, 3)
     Output: 3D poses as a tensor of shape (P, T, 18, 3)
+    Download the models from https://github.com/Walter0807/MotionBERT?tab=readme-ov-file and place them in MotionBERT/checkpoint/pose3d.
     """
 
     def __init__(
         self,
-        config_path: str = "MotionBERT/configs/pose3d/MB_ft_h36m_global_lite.yaml",
-        checkpoint_path: str = "MotionBERT/checkpoint/pose3d/FT_MB_lite_MB_ft_h36m_global_lite/best_epoch.bin",
+        config_name: Literal["global_lite", "train_h36m", "ft_h36m"] = "global_lite",
+        checkpoint_name: Literal[
+            "global_lite", "train_h36m", "ft_h36m"
+        ] = "global_lite",
         vid_path: str = "poseResearch/fem1_t1_preview.mp4",
         json_path: str = "poseResearch/dataloader/results_flatpose.json",
         out_path: str = "poseResearch/results",
@@ -33,12 +48,24 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
             os.path.join(os.path.dirname(__file__), "../../..")
         )
 
+        # Validate config_name and get config_path from MOTIONBERT_CONFIGS
+        if config_name not in MOTIONBERT_CONFIGS:
+            raise ValueError(
+                f"Invalid config_name '{config_name}'. Available configs: {list(MOTIONBERT_CONFIGS.keys())}"
+            )
+        config_path = MOTIONBERT_CONFIGS[config_name]
         # Convert relative paths to absolute paths
         self.config_path = (
             os.path.join(project_root, config_path)
             if not os.path.isabs(config_path)
             else config_path
         )
+
+        if checkpoint_name not in MOTIONBERT_CHECKPOINTS:
+            raise ValueError(
+                f"Invalid checkpoint_name '{checkpoint_name}'. Available checkpoints: {list(MOTIONBERT_CHECKPOINTS.keys())}"
+            )
+        checkpoint_path = MOTIONBERT_CHECKPOINTS[checkpoint_name]
         self.checkpoint_path = (
             os.path.join(project_root, checkpoint_path)
             if not os.path.isabs(checkpoint_path)
