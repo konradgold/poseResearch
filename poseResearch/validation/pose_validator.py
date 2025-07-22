@@ -1,13 +1,17 @@
-from typing import Tuple
+from typing import Tuple, Dict, List, Optional
 import numpy as np
 import cv2
 import torch
+import csv
+import os
+from datetime import datetime
 
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 from utils.process_manager import ProcessManager, StageName
+from visualizer.skeleton_config import AnatomicalSkeletonConfig
 
 
 class PoseValidator:
@@ -28,6 +32,7 @@ class PoseValidator:
         self,
         confidence_threshold: float = 0.4,
         image_size: Tuple[int, int] = (640, 480),
+        skeleton_config: Optional[AnatomicalSkeletonConfig] = None,
     ):
         """
         Initialize the pose validator.
@@ -35,10 +40,17 @@ class PoseValidator:
         Args:
             confidence_threshold: Minimum confidence for 2D keypoints to be considered valid
             image_size: Image size (width, height) for camera projection
+            skeleton_config: Skeleton configuration for joint names and structure
         """
         self.confidence_threshold = confidence_threshold
         self.image_size = image_size
         self.focal_length = image_size[0]  # Use image width as focal length
+
+        # Initialize skeleton configuration
+        if skeleton_config is None:
+            skeleton_config = AnatomicalSkeletonConfig()
+        self.skeleton_config = skeleton_config
+        self.joint_names = skeleton_config.get_keypoint_names()
 
         # Camera matrix for 3D to 2D projection
         self.camera_matrix = np.array(
@@ -180,6 +192,150 @@ class PoseValidator:
 
         return real_mpjpe_mm
 
+    def mpjpe_per_joint(
+        self, predicted_3d: np.ndarray, target_2d: np.ndarray
+    ) -> Dict[str, float]:
+        """
+        Calculate MPJPE per joint (keypoint).
+
+        Args:
+            predicted_3d: 3D poses of shape (num_poses, num_keypoints, 3)
+            target_2d: 2D target poses of shape (num_poses, num_keypoints, 2)
+
+        Returns:
+            Dictionary mapping joint names to their MPJPE values
+        """
+        predicted_2d = self.project_to_plane(predicted_3d, target_2d)
+        assert predicted_2d.shape == target_2d.shape
+
+        per_joint_errors = {}
+
+        # Calculate error for each joint
+        for joint_idx, joint_name in enumerate(self.joint_names):
+            if joint_idx < predicted_2d.shape[1]:  # Ensure joint exists in data
+                joint_errors = np.linalg.norm(
+                    predicted_2d[:, joint_idx, :] - target_2d[:, joint_idx, :], axis=1
+                )
+                per_joint_errors[joint_name] = np.mean(joint_errors)
+            else:
+                per_joint_errors[joint_name] = float("inf")
+
+        return per_joint_errors
+
+    def real_mpjpe_per_joint(
+        self, predicted_3d: np.ndarray, target_2d: np.ndarray
+    ) -> Dict[str, float]:
+        """
+        Calculate real-world scaled MPJPE per joint (keypoint) in millimeters.
+
+        Args:
+            predicted_3d: 3D poses of shape (num_poses, num_keypoints, 3)
+            target_2d: 2D target poses of shape (num_poses, num_keypoints, 2)
+
+        Returns:
+            Dictionary mapping joint names to their real-world MPJPE values in mm
+        """
+        # Calculate scale factor from root-to-spine distance
+        scale_factor = self._calculate_scale_factor(predicted_3d)
+
+        # Get per-joint errors in model units
+        per_joint_errors = self.mpjpe_per_joint(predicted_3d, target_2d)
+
+        # Scale to real-world measurements
+        real_per_joint_errors = {
+            joint_name: error * scale_factor
+            for joint_name, error in per_joint_errors.items()
+        }
+
+        return real_per_joint_errors
+
+    def save_results_to_csv(
+        self,
+        results: Dict[str, any],
+        output_path: str = "pose_validation_results.csv",
+    ) -> None:
+        """
+        Save validation results to a CSV file with each frame as a separate row.
+
+        Args:
+            results: Dictionary containing validation results
+            output_path: Path to save the CSV file
+        """
+        # Ensure output directory exists
+        os.makedirs(
+            os.path.dirname(output_path) if os.path.dirname(output_path) else ".",
+            exist_ok=True,
+        )
+
+        # Prepare header fields
+        header_fields = [
+            "frame_idx",
+            "overall_mpjpe",
+            "overall_real_mpjpe_mm",
+            "confidence_threshold",
+        ]
+
+        # Add per-joint MPJPE fields
+        for joint_name in self.joint_names:
+            header_fields.extend([f"mpjpe_{joint_name}", f"real_mpjpe_mm_{joint_name}"])
+
+        # Write to CSV (always replace, never append)
+        with open(output_path, "w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=header_fields)
+            writer.writeheader()
+
+            # Write summary row
+            summary_row = {
+                "frame_idx": "SUMMARY",
+                "overall_mpjpe": results.get("overall_mpjpe", 0.0),
+                "overall_real_mpjpe_mm": results.get("overall_real_mpjpe_mm", 0.0),
+                "confidence_threshold": self.confidence_threshold,
+            }
+
+            # Add per-joint summary data
+            per_joint_mpjpe = results.get("per_joint_mpjpe", {})
+            per_joint_real_mpjpe = results.get("per_joint_real_mpjpe_mm", {})
+
+            for joint_name in self.joint_names:
+                summary_row[f"mpjpe_{joint_name}"] = per_joint_mpjpe.get(
+                    joint_name, 0.0
+                )
+                summary_row[f"real_mpjpe_mm_{joint_name}"] = per_joint_real_mpjpe.get(
+                    joint_name, 0.0
+                )
+
+            writer.writerow(summary_row)
+
+            # Write individual frame data
+            frame_data = results.get("frame_data", [])
+            for frame_idx, frame_result in enumerate(frame_data):
+                frame_row = {
+                    "frame_idx": frame_idx,
+                    "overall_mpjpe": frame_result.get("overall_mpjpe", 0.0),
+                    "overall_real_mpjpe_mm": frame_result.get(
+                        "overall_real_mpjpe_mm", 0.0
+                    ),
+                    "confidence_threshold": self.confidence_threshold,
+                }
+
+                # Add per-joint frame data
+                frame_per_joint_mpjpe = frame_result.get("per_joint_mpjpe", {})
+                frame_per_joint_real_mpjpe = frame_result.get(
+                    "per_joint_real_mpjpe_mm", {}
+                )
+
+                for joint_name in self.joint_names:
+                    frame_row[f"mpjpe_{joint_name}"] = frame_per_joint_mpjpe.get(
+                        joint_name, 0.0
+                    )
+                    frame_row[f"real_mpjpe_mm_{joint_name}"] = (
+                        frame_per_joint_real_mpjpe.get(joint_name, 0.0)
+                    )
+
+                writer.writerow(frame_row)
+
+        print(f"Results saved to {output_path} with {len(frame_data)} frame rows")
+
     def validate(
         self,
         gt_data_loader: ProcessManager,
@@ -187,7 +343,9 @@ class PoseValidator:
         gt_stage: StageName = "flatpose",
         poses_3d_stage: StageName = "poselifting",
         use_real_world_scale: bool = True,
-    ) -> float:
+        save_to_csv: bool = True,
+        csv_output_path: str = "pose_gtcam22_cam22.csv",
+    ) -> Dict[str, any]:
         """
         Validate 3D poses against 2D ground truth poses from DataLoaders using MPJPE.
 
@@ -197,9 +355,11 @@ class PoseValidator:
             gt_stage: Stage name in gt_data_loader containing 2D poses
             poses_3d_stage: Stage name in poses_3d_data_loader containing 3D poses
             use_real_world_scale: If True, scale MPJPE to real-world millimeters
+            save_to_csv: Whether to save results to CSV file
+            csv_output_path: Path for CSV output file
 
         Returns:
-            Average MPJPE across all comparisons (in pixels or millimeters)
+            Dictionary containing validation results including per-joint MPJPE
         """
         # Get data from DataLoaders
         gt_poses = gt_data_loader.get_tensor(gt_stage)
@@ -210,16 +370,21 @@ class PoseValidator:
         if poses_3d is None:
             raise ValueError(f"No 3D poses data found for stage '{poses_3d_stage}'")
 
-        return self._validate_poses(poses_3d, gt_poses, use_real_world_scale)
+        results = self._validate_poses(poses_3d, gt_poses, use_real_world_scale)
+
+        if save_to_csv:
+            self.save_results_to_csv(results, csv_output_path)
+
+        return results
 
     def _validate_poses(
         self,
         poses_3d: torch.Tensor,
         gt_poses_2d: torch.Tensor,
         use_real_world_scale: bool = False,
-    ) -> float:
+    ) -> Dict[str, any]:
         """
-        Core validation logic using MPJPE calculation.
+        Core validation logic using MPJPE calculation with detailed per-joint analysis.
 
         Args:
             poses_3d: 3D poses tensor of shape (num_people, num_frames, num_keypoints, 3)
@@ -228,7 +393,7 @@ class PoseValidator:
             use_real_world_scale: If True, scale MPJPE to real-world millimeters
 
         Returns:
-            Average MPJPE across all comparisons (in pixels or millimeters)
+            Dictionary containing overall MPJPE, per-joint MPJPE, and metadata
         """
         # Convert to numpy
         if isinstance(poses_3d, torch.Tensor):
@@ -247,7 +412,10 @@ class PoseValidator:
             )
 
         mpjpe_scores = []
+        all_per_joint_errors = []
+        frame_data = []
         num_frames = min(poses_3d.shape[1], gt_poses_2d.shape[1])
+        frames_processed = 0
 
         # Process each frame
         for frame_idx in range(num_frames):
@@ -259,7 +427,6 @@ class PoseValidator:
 
             # Filter by confidence if needed
             confidence = frame_2d_gt[:, :, 2]  # (num_people, num_keypoints)
-            # valid_people = []
             valid_3d = []
             valid_2d = []
 
@@ -275,12 +442,78 @@ class PoseValidator:
                 valid_3d = np.array(valid_3d)
                 valid_2d = np.array(valid_2d)
 
-                # Calculate MPJPE for this frame
+                # Calculate overall MPJPE for this frame
                 if use_real_world_scale:
                     frame_mpjpe = self.real_mpjpe(valid_3d, valid_2d)
+                    frame_per_joint_errors = self.real_mpjpe_per_joint(
+                        valid_3d, valid_2d
+                    )
                 else:
                     frame_mpjpe = self.mpjpe(valid_3d, valid_2d)
-                print(frame_mpjpe)
-                mpjpe_scores.append(frame_mpjpe)
+                    frame_per_joint_errors = self.mpjpe_per_joint(valid_3d, valid_2d)
 
-        return np.mean(mpjpe_scores) if mpjpe_scores else float("inf")
+                print(f"Frame {frame_idx}: Overall MPJPE = {frame_mpjpe:.3f}")
+                mpjpe_scores.append(frame_mpjpe)
+                all_per_joint_errors.append(frame_per_joint_errors)
+                frames_processed += 1
+
+                # Store frame data for CSV output
+                frame_result = {
+                    "overall_mpjpe": frame_mpjpe,
+                    "per_joint_mpjpe": frame_per_joint_errors,
+                }
+
+                if use_real_world_scale:
+                    frame_result["overall_real_mpjpe_mm"] = frame_mpjpe
+                    frame_result["per_joint_real_mpjpe_mm"] = frame_per_joint_errors
+
+                frame_data.append(frame_result)
+
+        # Calculate overall statistics
+        overall_mpjpe = np.mean(mpjpe_scores) if mpjpe_scores else float("inf")
+
+        # Calculate average per-joint errors across all frames
+        if all_per_joint_errors:
+            avg_per_joint_errors = {}
+            for joint_name in self.joint_names:
+                joint_errors = [
+                    errors.get(joint_name, float("inf"))
+                    for errors in all_per_joint_errors
+                ]
+                valid_errors = [e for e in joint_errors if e != float("inf")]
+                avg_per_joint_errors[joint_name] = (
+                    np.mean(valid_errors) if valid_errors else float("inf")
+                )
+        else:
+            avg_per_joint_errors = {
+                joint_name: float("inf") for joint_name in self.joint_names
+            }
+
+            # Prepare results dictionary
+        results = {
+            "overall_mpjpe": overall_mpjpe,
+            "per_joint_mpjpe": avg_per_joint_errors,
+            "num_frames_processed": frames_processed,
+            "total_frames": num_frames,
+            "frame_data": frame_data,
+        }
+
+        # Add real-world scale results if applicable
+        if use_real_world_scale:
+            results["overall_real_mpjpe_mm"] = overall_mpjpe
+            results["per_joint_real_mpjpe_mm"] = avg_per_joint_errors
+
+        # Print summary
+        print(f"\n=== Pose Validation Results ===")
+        print(
+            f"Overall MPJPE: {overall_mpjpe:.3f} {'mm' if use_real_world_scale else 'pixels'}"
+        )
+        print(f"Frames processed: {frames_processed}/{num_frames}")
+        print(f"\nPer-Joint MPJPE:")
+        for joint_name, error in avg_per_joint_errors.items():
+            if error != float("inf"):
+                print(
+                    f"  {joint_name:15}: {error:.3f} {'mm' if use_real_world_scale else 'pixels'}"
+                )
+
+        return results

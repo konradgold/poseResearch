@@ -52,8 +52,6 @@ def example_single_validation(gt_name: str, poses3d_name: str):
         poses_3d_stage="poselifting",
     )
 
-    print(f"Similarity Score: {similarity_score:.4f}")
-
     return similarity_score
 
 

@@ -8,12 +8,14 @@ See https://docs.astral.sh/uv/guides/projects/ for any further information.
 pip install -e .
 ```
 
-Examples from [poseResearch/example_usage.py](poseResearch/example_usage.py) now work out of the box if they do not use the cloned subrepositories. If you need them use uv to create virtual environment:
+Examples from [poseResearch/example_usage.py](poseResearch/example_usage.py) now work out of the box if they do not use the cloned subrepositories. If you need them use uv to create a virtual environment:
 
 ```bash
 uv venv
 .venv/Scripts/activate
 ```
+
+Some estimation classes need additional setup like to download checkpoints. Read the respective class descriptions.
 
 # Development
 
