@@ -4,6 +4,7 @@ Lean example: ProcessManager manages all input data, pipeline just runs stages.
 """
 
 import argparse
+import os
 import sys
 import torch
 from utils.process_manager import ProcessManager
@@ -265,13 +266,13 @@ def example_10_generic_pipeline(
         print(f"YOLO Model: {yolo_model}")
     print(f"Batch Size: {batch_size}")
     print(f"Number of Frames: {num_frames}")
-    save_path = f"{preprocessor}-{pose2d}-{pose3d}-{yolo_model}-{'full' if num_frames is None else num_frames}"
+    save_path = f"{preprocessor}-{pose2d}-{pose3d}-{yolo_model}"
+    save_path += f"-{os.path.splitext(os.path.basename(video_path))[0]}"
+    save_path += f"-{'full' if num_frames is None else num_frames}"
     print(f"Save Path: {save_path}")
     yolo_model = f"yolo{yolo_model}-pose.pt"
 
     # Import available estimation classes
-    from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
-    from estimation.pose3D.videopose3d_estimation import VideoPose3DEstimation
 
     # Create preprocessor instance
     if preprocessor.lower() == "none" or preprocessor.lower() == "no_preprocess":
@@ -312,8 +313,12 @@ def example_10_generic_pipeline(
 
     # Create 3D pose estimation instance
     if pose3d.lower() == "motionbert":
+        from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
+
         pose3d_instance = MotionBERTEstimation()
     elif pose3d.lower() == "videopose3d":
+        from estimation.pose3D.videopose3d_estimation import VideoPose3DEstimation
+
         pose3d_instance = VideoPose3DEstimation()
     elif pose3d.lower() == "dummy":
         pose3d_instance = Dummy3DPose()

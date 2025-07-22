@@ -4,15 +4,20 @@ Example showing how to visualize poses using ProcessManager and the new visualiz
 """
 
 import argparse
+from pathlib import Path
 from utils.process_manager import ProcessManager
 from visualizer.pose_3d_visualizer import Pose3DVisualizer
 from visualizer.pose_2d_visualizer import Pose2DVisualizer
+
+pr_dir = Path(__file__).parent
 
 
 def visualize_2d_poses(path: str):
     data_loader = ProcessManager()
     data_loader.load_json(
-        f"dataloader/results{'_' if path != '' else ''}{path}_flatpose.json"
+        pr_dir
+        / "dataloader"
+        / f"results{'_' if path != '' else ''}{path}_flatpose.json"
     )
 
     visualizer_2d = Pose2DVisualizer(
@@ -29,7 +34,9 @@ def visualize_2d_poses(path: str):
 def visualize_3d_poses(path: str):
     data_loader = ProcessManager()
     data_loader.load_json(
-        f"dataloader/results{'_' if path != '' else ''}{path}_poselifting.json"
+        pr_dir
+        / "dataloader"
+        / f"results{'_' if path != '' else ''}{path}_poselifting.json"
     )
 
     visualizer_3d = Pose3DVisualizer(
