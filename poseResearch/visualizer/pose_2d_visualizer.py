@@ -21,6 +21,7 @@ class Pose2DVisualizer(PoseVisualizer):
         skeleton_type: str = "coco",
         create_videos: bool = False,
         video_fps: int = 15,
+        save_path: str = "",
     ):
         # Initialize base class
         super().__init__(
@@ -43,6 +44,7 @@ class Pose2DVisualizer(PoseVisualizer):
 
         # Fixed axis limits for consistent view
         self.fixed_axis_limits = None
+        self.save_path = save_path
 
     def _cache_skeleton_properties(self):
         """Cache skeleton properties for better performance during visualization"""
@@ -381,7 +383,7 @@ class Pose2DVisualizer(PoseVisualizer):
         ).lower()
 
         # Create video from 2D pose frames
-        video_filename = f"2d_pose_animation_{skeleton_name}.mp4"
+        video_filename = f"pose2D_{self.save_path}_{skeleton_name}.mp4"
         video_path = self.create_video_from_images(video_filename, "*_2d_*.png")
 
         if video_path:

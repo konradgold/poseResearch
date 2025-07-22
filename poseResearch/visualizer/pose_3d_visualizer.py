@@ -22,6 +22,7 @@ class Pose3DVisualizer(PoseVisualizer):
         create_videos: bool = False,
         video_fps: int = 15,
         fixed_axis: bool = True,
+        save_path: str = "",
     ):
         # Initialize base class
         super().__init__(
@@ -45,6 +46,7 @@ class Pose3DVisualizer(PoseVisualizer):
 
         # Cache skeleton properties for performance
         self._cache_skeleton_properties()
+        self.save_path = save_path
 
     def _cache_skeleton_properties(self):
         """Cache skeleton properties for better performance during visualization"""
@@ -329,7 +331,7 @@ class Pose3DVisualizer(PoseVisualizer):
         ).lower()
 
         # Create video from 3D pose frames
-        video_filename = f"3d_pose_animation_{skeleton_name}.mp4"
+        video_filename = f"pose3D_{self.save_path}_{skeleton_name}.mp4"
         video_path = self.create_video_from_images(video_filename, "*_3d_*.png")
 
         if video_path:

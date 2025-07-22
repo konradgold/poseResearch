@@ -28,6 +28,9 @@ class ProcessManager:
         self.total_frames = 0
         self.processed_frames = 0
 
+        # Get the poseResearch directory (relative to this file)
+        self.pr_dir = Path(__file__).parent.parent
+
     def set_input(self, input_data: torch.Tensor) -> None:
         """Set the initial input data (e.g., raw video frames)."""
         # Store input data in the same store as stage outputs
@@ -295,9 +298,11 @@ class ProcessManager:
 
         # Auto-save if save_path is provided
         if self.save_path:
-            # Create stage-specific filename in dataloader folder
-            stage_filename = f"results_{stage_name}.json"
-            stage_path = self.save_path.parent / "dataloader" / stage_filename
+            # Create stage-specific filename in poseResearch/dataloader folder
+            stage_filename = f"results_{self.save_path.stem}_{stage_name}.json"
+            dataloader_dir = self.pr_dir / "dataloader"
+            dataloader_dir.mkdir(parents=True, exist_ok=True)
+            stage_path = dataloader_dir / stage_filename
             self.save_json(str(stage_path), stage_name)
 
     def get_tensor(self, stage_name: StageName) -> torch.Tensor | None:
