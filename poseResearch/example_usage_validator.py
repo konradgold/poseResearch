@@ -47,8 +47,6 @@ def example_single_validation():
         poses_3d_stage="poselifting",
     )
 
-    print(f"Similarity Score: {similarity_score:.4f}")
-
     return similarity_score
 
 
