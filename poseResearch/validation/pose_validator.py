@@ -1,10 +1,9 @@
-from typing import Tuple, Dict, List, Optional
+from typing import Tuple, Dict, Optional
 import numpy as np
 import cv2
 import torch
 import csv
 import os
-from datetime import datetime
 
 import sys
 from pathlib import Path
@@ -504,12 +503,12 @@ class PoseValidator:
             results["per_joint_real_mpjpe_mm"] = avg_per_joint_errors
 
         # Print summary
-        print(f"\n=== Pose Validation Results ===")
+        print("\n=== Pose Validation Results ===")
         print(
             f"Overall MPJPE: {overall_mpjpe:.3f} {'mm' if use_real_world_scale else 'pixels'}"
         )
         print(f"Frames processed: {frames_processed}/{num_frames}")
-        print(f"\nPer-Joint MPJPE:")
+        print("\nPer-Joint MPJPE:")
         for joint_name, error in avg_per_joint_errors.items():
             if error != float("inf"):
                 print(
