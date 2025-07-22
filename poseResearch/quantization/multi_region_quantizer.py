@@ -95,16 +95,16 @@ class Block(torch.nn.Module):
 
 
 class MultiRegionQuantizer(VQVAEBase):
-    def __init__(self, *args: Any, **kwds: Any) -> None:
+    def __init__(self, config: dict) -> None:
         super().__init__()
-        self.nbooks = kwds.get("nbooks", 64)
-        self.nregions = kwds.get("nregions", 4)
-        self.emb_dim = kwds.get("n_e", 512)
-        self.sequence_length = kwds.get(
+        self.nbooks = config.get("nbooks", 64)
+        self.nregions = config.get("nregions", 4)
+        self.emb_dim = config.get("n_e", 512)
+        self.sequence_length = config.get(
             "sequence_length", 8
         )  # How many frames are considered jointly
-        self.num_heads = kwds.get("num_heads", 4)
-        self.dim_bottleneck = kwds.get("dim_bottleneck", 64)
+        self.num_heads = config.get("num_heads", 4)
+        self.dim_bottleneck = config.get("dim_bottleneck", 64)
 
         self.region_size = self.dim_bottleneck // self.nregions
         self.encoder = torch.nn.Sequential(
