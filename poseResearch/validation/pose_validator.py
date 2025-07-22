@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.process_manager import ProcessManager, StageName
+from utils.process_manager import ProcessManager
 from visualizer.skeleton_config import AnatomicalSkeletonConfig
 
 
@@ -363,9 +363,9 @@ class PoseValidator:
         poses_3d = poses_3d_data_loader.get_tensor("poselifting")
 
         if gt_poses is None:
-            raise ValueError(f"No ground truth data found for stage 'flatpose'")
+            raise ValueError("No ground truth data found for stage 'flatpose'")
         if poses_3d is None:
-            raise ValueError(f"No 3D poses data found for stage 'poselifting'")
+            raise ValueError("No 3D poses data found for stage 'poselifting'")
 
         results = self._validate_poses(poses_3d, gt_poses, use_real_world_scale)
 
