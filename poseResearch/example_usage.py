@@ -246,6 +246,101 @@ def example_9_detectron2_from_video(video_path: str):
     print(f"Video result: {result.shape}")
 
 
+def example_10_generic_pipeline(
+    video_path: str,
+    preprocessor: str,
+    pose2d: str,
+    pose3d: str,
+    yolo_model: str = "yolo11s-pose.pt",
+    batch_size: int = 32,
+    num_frames: int = None,
+    save_path: str = "generic",
+):
+    """Generic pipeline with configurable estimation classes and models."""
+    print(f"\n=== Generic Pipeline ===")
+    print(f"Preprocessor: {preprocessor}")
+    print(f"2D Pose Estimation: {pose2d}")
+    print(f"3D Pose Estimation: {pose3d}")
+    if "yolo" in pose2d.lower():
+        print(f"YOLO Model: {yolo_model}")
+    print(f"Batch Size: {batch_size}")
+    print(f"Number of Frames: {num_frames}")
+    save_path = f"{preprocessor}-{pose2d}-{pose3d}-{yolo_model}-{'full' if num_frames is None else num_frames}"
+    print(f"Save Path: {save_path}")
+    yolo_model = f"yolo{yolo_model}-pose.pt"
+
+    # Import available estimation classes
+    from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
+    from estimation.pose3D.videopose3d_estimation import VideoPose3DEstimation
+
+    # Create preprocessor instance
+    if preprocessor.lower() == "none" or preprocessor.lower() == "no_preprocess":
+        from estimation.preprocess.no_preprocess import NoPreprocess
+
+        preprocessor_instance = NoPreprocess()
+    elif (
+        preprocessor.lower() == "yolo_bb" or preprocessor.lower() == "yolo_bounding_box"
+    ):
+        from estimation.preprocess.yolo_bb_preprocess import YOLOBoundingBoxPreprocess
+
+        preprocessor_instance = YOLOBoundingBoxPreprocess(
+            model=yolo_model,
+            video_path=f"output_{yolo_model.replace('.pt', '')}_bb_preprocess.mp4",
+        )
+    elif preprocessor.lower() == "dummy":
+        preprocessor_instance = DummyPreprocessor()
+    else:
+        raise ValueError(
+            f"Unknown preprocessor: {preprocessor}. Available: none, yolo_bb, dummy"
+        )
+
+    # Create 2D pose estimation instance
+    if pose2d.lower() == "yolo":
+        from estimation.pose2D.yolo_estimation import YOLOEstimation
+
+        pose2d_instance = YOLOEstimation(yolo_model)
+    elif pose2d.lower() == "detectron2":
+        from estimation.pose2D.detectron2_estimation import Detectron2Estimation
+
+        pose2d_instance = Detectron2Estimation()
+    elif pose2d.lower() == "dummy":
+        pose2d_instance = Dummy2DPose()
+    else:
+        raise ValueError(
+            f"Unknown 2D pose estimator: {pose2d}. Available: yolo, detectron2, dummy"
+        )
+
+    # Create 3D pose estimation instance
+    if pose3d.lower() == "motionbert":
+        pose3d_instance = MotionBERTEstimation()
+    elif pose3d.lower() == "videopose3d":
+        pose3d_instance = VideoPose3DEstimation()
+    elif pose3d.lower() == "dummy":
+        pose3d_instance = Dummy3DPose()
+    else:
+        raise ValueError(
+            f"Unknown 3D pose estimator: {pose3d}. Available: motionbert, videopose3d, dummy"
+        )
+
+    # Create data loader and pipeline
+    data_loader = ProcessManager(save_path=save_path, batch_size=batch_size)
+    data_loader.set_input_from_video(video_path, num_frames=num_frames)
+
+    print(f"Video prepared for batch processing: {data_loader.total_frames} frames")
+
+    pipeline = EstimationPipe(
+        preprocessor_instance,
+        pose2d_instance,
+        pose3d_instance,
+        data_loader,
+    )
+
+    result = pipeline.forward()
+    print(f"Final result shape: {result.shape}")
+    print(f"Total batches processed: {pipeline.processed_batches}")
+    print(f"Pipeline completed successfully!")
+
+
 def parse_args_and_examples():
     examples = {
         "1": ("Full Pipeline", "example_1_full_pipeline"),
@@ -257,6 +352,7 @@ def parse_args_and_examples():
         "7": ("YOLO Bounding Box Preprocess", "example_7_yolo_bb_preprocess"),
         "8": ("Large Video Batch Processing", "example_8_large_video_batch_processing"),
         "9": ("Detectron2 from Video", "example_9_detectron2_from_video"),
+        "10": ("Generic Pipeline", "example_10_generic_pipeline"),
     }
 
     parser = argparse.ArgumentParser(
@@ -275,6 +371,55 @@ def parse_args_and_examples():
         help="Path of input video to process",
         default="fem1_t1_preview.mp4",
     )
+
+    # Additional arguments for generic pipeline (example 10)
+    parser.add_argument(
+        "--preprocessor",
+        type=str,
+        choices=["none", "yolo_bb", "dummy"],
+        help="Preprocessor to use (for example 10)",
+        default="none",
+    )
+    parser.add_argument(
+        "--pose2d",
+        type=str,
+        choices=["yolo", "detectron2", "dummy"],
+        help="2D pose estimation method (for example 10)",
+        default="yolo",
+    )
+    parser.add_argument(
+        "--pose3d",
+        type=str,
+        choices=["motionbert", "videopose3d", "dummy"],
+        help="3D pose estimation method (for example 10)",
+        default="motionbert",
+    )
+    parser.add_argument(
+        "--yolo-model",
+        type=str,
+        choices=[
+            "11n",
+            "11s",
+            "11m",
+            "11l",
+            "11x",
+        ],
+        help="YOLO model to use (for example 10)",
+        default="11s",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        help="Batch size for processing (for example 10)",
+        default=32,
+    )
+    parser.add_argument(
+        "--num-frames",
+        type=int,
+        help="Number of frames to process (for example 10). If not provided, processes entire video.",
+        default=None,
+    )
+
     args = parser.parse_args()
     return args, examples
 
@@ -290,7 +435,19 @@ if __name__ == "__main__":
 
     func_name = examples[args.example][1]
     if func_name in local_vars:
-        local_vars[func_name](args.video)
+        if func_name == "example_10_generic_pipeline":
+            # Pass additional arguments for generic pipeline
+            local_vars[func_name](
+                args.video,
+                args.preprocessor,
+                args.pose2d,
+                args.pose3d,
+                args.yolo_model,
+                args.batch_size,
+                args.num_frames,
+            )
+        else:
+            local_vars[func_name](args.video)
     else:
         print(f"Function {func_name} not found.")
         sys.exit(1)

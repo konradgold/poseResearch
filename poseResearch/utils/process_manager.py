@@ -296,7 +296,7 @@ class ProcessManager:
         # Auto-save if save_path is provided
         if self.save_path:
             # Create stage-specific filename in dataloader folder
-            stage_filename = f"results_{stage_name}.json"
+            stage_filename = f"results_{self.save_path.stem}_{stage_name}.json"
             stage_path = self.save_path.parent / "dataloader" / stage_filename
             self.save_json(str(stage_path), stage_name)
 
