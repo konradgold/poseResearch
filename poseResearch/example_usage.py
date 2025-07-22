@@ -258,7 +258,7 @@ def example_10_generic_pipeline(
     save_path: str = "generic",
 ):
     """Generic pipeline with configurable estimation classes and models."""
-    print(f"\n=== Generic Pipeline ===")
+    print("\n=== Generic Pipeline ===")
     print(f"Preprocessor: {preprocessor}")
     print(f"2D Pose Estimation: {pose2d}")
     print(f"3D Pose Estimation: {pose3d}")
@@ -343,7 +343,7 @@ def example_10_generic_pipeline(
     result = pipeline.forward()
     print(f"Final result shape: {result.shape}")
     print(f"Total batches processed: {pipeline.processed_batches}")
-    print(f"Pipeline completed successfully!")
+    print("Pipeline completed successfully!")
 
 
 def parse_args_and_examples():
