@@ -45,14 +45,12 @@ def example_single_validation(gt_name: str, poses3d_name: str):
 
     # Validate
     print("\nRunning validation...")
-    similarity_score = validator.validate(
+    validator.validate(
         gt_data_loader=gt_loader,
         poses_3d_data_loader=poses_3d_loader,
-        gt_stage="flatpose",
-        poses_3d_stage="poselifting",
+        gt_name=gt_name,
+        poses_3d_name=poses3d_name,
     )
-
-    return similarity_score
 
 
 def parse_args():
@@ -83,11 +81,7 @@ def main():
     args = parse_args()
 
     try:
-        # Single validation example
-        single_score = example_single_validation(args.gt_name, args.poses3d_name)
-
-        print(f"Validation score: {single_score:.4f}")
-
+        example_single_validation(args.gt_name, args.poses3d_name)
     except Exception as e:
         print(f"Error during example execution: {e}")
         import traceback
