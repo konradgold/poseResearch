@@ -74,6 +74,7 @@ exclude = [
     "MotionBERT",
     "pose_estimation",
     "PoseGPT",
+    "sam2",
     "VideoPose3D",
     "train_custom.py",
 ]
