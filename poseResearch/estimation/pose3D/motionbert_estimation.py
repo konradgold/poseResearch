@@ -14,9 +14,9 @@ MOTIONBERT_CONFIGS = {
     "ft_h36m": "MotionBERT/configs/pose3d/MB_ft_h36m.yaml",
 }
 MOTIONBERT_CHECKPOINTS = {
-    "global_lite": "MotionBERT/checkpoint/pose3d/MB_ft_h36m_global_lite-best_epoch.bin",
-    "train_h36m": "MotionBERT/checkpoint/pose3d/MB_train_h36m-best_epoch.bin",
-    "ft_h36m": "MotionBERT/checkpoint/pose3d/MB_ft_h36m-best_epoch.bin",
+    "global_lite": "MotionBERT/checkpoint/pose3d/MB_ft_h36m_global_lite-best_epoch.bin",  # unsure
+    "train_h36m": "MotionBERT/checkpoint/pose3d/MB_train_h36m-best_epoch.bin",  # H36M-SH, scratch, MPJPE: 39.2mm
+    "ft_h36m": "MotionBERT/checkpoint/pose3d/MB_ft_h36m-best_epoch.bin",  # H36M-SH, finetuned, MPJPE: 37.2mm
 }
 
 
