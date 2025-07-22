@@ -24,7 +24,7 @@ def visualize_2d_poses():
 
 def visualize_3d_poses():
     data_loader = ProcessManager()
-    data_loader.load_json("dataloader/results_poselifting.json")
+    data_loader.load_json("quantized_poses.json")
 
     visualizer_3d = Pose3DVisualizer(
         skeleton_type="anatomical",
@@ -37,5 +37,5 @@ def visualize_3d_poses():
 
 
 if __name__ == "__main__":
-    visualize_2d_poses()
+    #visualize_2d_poses()
     visualize_3d_poses()

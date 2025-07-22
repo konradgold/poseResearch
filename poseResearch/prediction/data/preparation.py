@@ -66,11 +66,11 @@ def save_tensor(tensor: torch.Tensor, output_path: str) -> None:  # type: ignore
 
 def main():
     parser = argparse.ArgumentParser(description="Process JSON file and save as tensor")
-    parser.add_argument("--tokenizer", type=str, help="What tokenizer to use")
+    parser.add_argument("--tokenizer", type=str, help="What tokenizer to use", default="poseResearch/prediction/data/tokenizer")
     parser.add_argument(
-        "--input_path", type=str, help="Path to directory of json files"
+        "--input_path", type=str, help="Path to directory of json files", default="poseResearch/dataloader/male2_t2_cam01"
     )
-    parser.add_argument("--output_path", type=str, help="Path to output .bin file")
+    parser.add_argument("--output_path", type=str, help="Path to output .bin file", default="data/overfit/val.bin")
     parser.add_argument(
         "--fit", action="store_true", help="Whether to fit the tokeniser"
     )
@@ -80,6 +80,7 @@ def main():
     # Load JSON data
     print(f"Loading JSON from: {args.input_path}")
     data = load_json(args.input_path)
+    data = [d for d in data if "poselifting" in d]  # Filter for relevant data
 
     # Process data
     print(f"Processing data (fit tokenizer={args.fit})...")
