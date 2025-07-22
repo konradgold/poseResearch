@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Tuple
 import numpy as np
 import cv2
 import torch
@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.data_loader import DataLoader, StageName
+from utils.process_manager import ProcessManager, StageName
 
 
 class PoseValidator:
@@ -15,6 +15,14 @@ class PoseValidator:
     Simple pose validator that computes MPJPE between 3D poses and 2D ground truth poses.
     Accepts two DataLoaders: one for ground truth 2D poses and one for 3D poses.
     """
+
+    # Constants for real-world measurements
+    AVERAGE_HUMAN_HEIGHT_MM = 1700.0  # Average human height in millimeters
+    ROOT_TO_SPINE_RATIO = (
+        0.16  # Root to spine distance as proportion of total body height
+    )
+    ROOT_KEYPOINT_INDEX = 0  # Index of root keypoint
+    SPINE_KEYPOINT_INDEX = 7  # Index of spine keypoint
 
     def __init__(
         self,
@@ -44,6 +52,11 @@ class PoseValidator:
 
         # No distortion
         self.dist_coeffs = np.zeros((4, 1))
+
+        # Calculate expected real-world root-to-spine distance
+        self.expected_root_to_spine_distance_mm = (
+            self.AVERAGE_HUMAN_HEIGHT_MM * self.ROOT_TO_SPINE_RATIO
+        )
 
     def project_to_plane(
         self, predicted_3d: np.ndarray, target_2d: np.ndarray
@@ -91,6 +104,40 @@ class PoseValidator:
 
         return out
 
+    def _calculate_scale_factor(self, predicted_3d: np.ndarray) -> float:
+        """
+        Calculate the scale factor to convert from model units to real-world millimeters.
+
+        Args:
+            predicted_3d: 3D poses of shape (num_poses, num_keypoints, 3)
+
+        Returns:
+            Scale factor to convert model units to millimeters
+        """
+        root_to_spine_distances = []
+
+        for pose in predicted_3d:
+            root_point = pose[self.ROOT_KEYPOINT_INDEX]
+            spine_point = pose[self.SPINE_KEYPOINT_INDEX]
+
+            # Calculate Euclidean distance between root and spine
+            distance = np.linalg.norm(spine_point - root_point)
+            if distance > 0:  # Avoid division by zero
+                root_to_spine_distances.append(distance)
+
+        if not root_to_spine_distances:
+            return 1.0  # Default scale factor if no valid distances
+
+        # Use median distance to avoid outliers
+        median_measured_distance = np.median(root_to_spine_distances)
+
+        # Calculate scale factor: real_distance / measured_distance
+        scale_factor = (
+            self.expected_root_to_spine_distance_mm / median_measured_distance
+        )
+
+        return scale_factor
+
     def mpjpe(self, predicted_3d: np.ndarray, target_2d: np.ndarray) -> float:
         """
         Mean per-joint position error (i.e. mean Euclidean distance),
@@ -102,24 +149,57 @@ class PoseValidator:
             np.linalg.norm(predicted_2d - target_2d, axis=len(target_2d.shape) - 1)
         )
 
+    def real_mpjpe(self, predicted_3d: np.ndarray, target_2d: np.ndarray) -> float:
+        """
+        Mean per-joint position error scaled to real-world measurements in millimeters.
+
+        This method calculates the scale factor based on the root-to-spine distance
+        and applies it to convert the MPJPE to real-world millimeters.
+
+        Args:
+            predicted_3d: 3D poses of shape (num_poses, num_keypoints, 3)
+            target_2d: 2D target poses of shape (num_poses, num_keypoints, 2)
+
+        Returns:
+            MPJPE in millimeters based on real human proportions
+        """
+        # Calculate scale factor from root-to-spine distance
+        scale_factor = self._calculate_scale_factor(predicted_3d)
+
+        # Project 3D poses to 2D
+        predicted_2d = self.project_to_plane(predicted_3d, target_2d)
+        assert predicted_2d.shape == target_2d.shape
+
+        # Calculate MPJPE and scale to real-world measurements
+        mpjpe_model_units = np.mean(
+            np.linalg.norm(predicted_2d - target_2d, axis=len(target_2d.shape) - 1)
+        )
+
+        # Convert to millimeters
+        real_mpjpe_mm = mpjpe_model_units * scale_factor
+
+        return real_mpjpe_mm
+
     def validate(
         self,
-        gt_data_loader: DataLoader,
-        poses_3d_data_loader: DataLoader,
+        gt_data_loader: ProcessManager,
+        poses_3d_data_loader: ProcessManager,
         gt_stage: StageName = "flatpose",
         poses_3d_stage: StageName = "poselifting",
+        use_real_world_scale: bool = True,
     ) -> float:
         """
         Validate 3D poses against 2D ground truth poses from DataLoaders using MPJPE.
 
         Args:
-            gt_data_loader: DataLoader containing ground truth 2D poses
-            poses_3d_data_loader: DataLoader containing 3D poses
+            gt_data_loader: ProcessManager containing ground truth 2D poses
+            poses_3d_data_loader: ProcessManager containing 3D poses
             gt_stage: Stage name in gt_data_loader containing 2D poses
             poses_3d_stage: Stage name in poses_3d_data_loader containing 3D poses
+            use_real_world_scale: If True, scale MPJPE to real-world millimeters
 
         Returns:
-            Average MPJPE across all comparisons
+            Average MPJPE across all comparisons (in pixels or millimeters)
         """
         # Get data from DataLoaders
         gt_poses = gt_data_loader.get_tensor(gt_stage)
@@ -130,41 +210,13 @@ class PoseValidator:
         if poses_3d is None:
             raise ValueError(f"No 3D poses data found for stage '{poses_3d_stage}'")
 
-        return self._validate_poses(poses_3d, gt_poses)
-
-    def validate_batch(
-        self,
-        gt_data_loaders: List[DataLoader],
-        poses_3d_data_loaders: List[DataLoader],
-        gt_stage: StageName = "flatpose",
-        poses_3d_stage: StageName = "poselifting",
-    ) -> List[float]:
-        """
-        Validate a batch of pose sequences from multiple DataLoaders.
-
-        Args:
-            gt_data_loaders: List of DataLoaders containing ground truth 2D poses
-            poses_3d_data_loaders: List of DataLoaders containing 3D poses
-            gt_stage: Stage name containing 2D poses
-            poses_3d_stage: Stage name containing 3D poses
-
-        Returns:
-            List of MPJPE scores for each sequence pair
-        """
-        if len(gt_data_loaders) != len(poses_3d_data_loaders):
-            raise ValueError(
-                "Number of ground truth and 3D pose DataLoaders must match"
-            )
-
-        scores = []
-        for gt_loader, poses_loader in zip(gt_data_loaders, poses_3d_data_loaders):
-            score = self.validate(gt_loader, poses_loader, gt_stage, poses_3d_stage)
-            scores.append(score)
-
-        return scores
+        return self._validate_poses(poses_3d, gt_poses, use_real_world_scale)
 
     def _validate_poses(
-        self, poses_3d: torch.Tensor, gt_poses_2d: torch.Tensor
+        self,
+        poses_3d: torch.Tensor,
+        gt_poses_2d: torch.Tensor,
+        use_real_world_scale: bool = False,
     ) -> float:
         """
         Core validation logic using MPJPE calculation.
@@ -173,9 +225,10 @@ class PoseValidator:
             poses_3d: 3D poses tensor of shape (num_people, num_frames, num_keypoints, 3)
             gt_poses_2d: 2D ground truth poses of shape (num_people, num_frames, num_keypoints, 3)
                          where the last dimension contains [x, y, confidence]
+            use_real_world_scale: If True, scale MPJPE to real-world millimeters
 
         Returns:
-            Average MPJPE across all comparisons
+            Average MPJPE across all comparisons (in pixels or millimeters)
         """
         # Convert to numpy
         if isinstance(poses_3d, torch.Tensor):
@@ -223,7 +276,10 @@ class PoseValidator:
                 valid_2d = np.array(valid_2d)
 
                 # Calculate MPJPE for this frame
-                frame_mpjpe = self.mpjpe(valid_3d, valid_2d)
+                if use_real_world_scale:
+                    frame_mpjpe = self.real_mpjpe(valid_3d, valid_2d)
+                else:
+                    frame_mpjpe = self.mpjpe(valid_3d, valid_2d)
                 print(frame_mpjpe)
                 mpjpe_scores.append(frame_mpjpe)
 

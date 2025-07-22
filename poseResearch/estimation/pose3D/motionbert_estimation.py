@@ -261,5 +261,7 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
         corrected_output[:, :, :, 0] = output[:, :, :, 0]  # x = x
         corrected_output[:, :, :, 1] = output[:, :, :, 2]  # y = z
         corrected_output[:, :, :, 2] = output[:, :, :, 1]  # z = y
+        # Flip the y-axis
+        corrected_output[:, :, :, 0] = -corrected_output[:, :, :, 0]
 
         return corrected_output
