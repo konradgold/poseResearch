@@ -114,7 +114,8 @@ class PoseVisualizer(ABC):
             print(f"No images found matching pattern: {image_search_pattern}")
             return None
 
-        print(f"Creating video from {len(image_files)} images...")
+        num_frames = len(image_files)
+        print(f"Creating video from {num_frames} frames...")
         print(f"First few images: {[os.path.basename(f) for f in image_files[:3]]}")
 
         # Read first image to get dimensions
@@ -150,9 +151,11 @@ class PoseVisualizer(ABC):
 
                 video_writer.write(image)
                 frames_written += 1
-                if i % 5 == 0:  # More frequent progress updates
+                if (
+                    i % (max(1, num_frames // 20)) == 0
+                ):  # More frequent progress updates
                     print(
-                        f"Processing frame {i+1}/{len(image_files)} (written: {frames_written})"
+                        f"Processing frame {i+1}/{num_frames} (written: {frames_written})"
                     )
             else:
                 print(f"Warning: Could not read image {image_file}")
@@ -204,7 +207,9 @@ class PoseVisualizer(ABC):
             stage_name: Stage name for file naming
         """
         num_people, num_frames = poses.shape[0], poses.shape[1]
-        print(f"Processing {num_people} people across {num_frames} frames...")
+        print(
+            f"Processing {num_people} {'people' if num_people > 1 else 'person'} across {num_frames} frames..."
+        )
 
         # Compute fixed axis limits if this visualizer supports it
         if hasattr(self, "compute_fixed_axis_limits"):
