@@ -6,6 +6,7 @@ Lean example: ProcessManager manages all input data, pipeline just runs stages.
 import argparse
 import os
 import sys
+import time
 import torch
 from utils.process_manager import ProcessManager
 from pipeline import EstimationPipe
@@ -258,6 +259,8 @@ def example_10_generic_pipeline(
     save_path: str = "generic",
 ):
     """Generic pipeline with configurable estimation classes and models."""
+    start_time = time.time()
+
     print("\n=== Generic Pipeline ===")
     print(f"Preprocessor: {preprocessor}")
     print(f"2D Pose Estimation: {pose2d}")
@@ -343,7 +346,12 @@ def example_10_generic_pipeline(
     result = pipeline.forward()
     print(f"Final result shape: {result.shape}")
     print(f"Total batches processed: {pipeline.processed_batches}")
-    print("Pipeline completed successfully!")
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Pipeline completed successfully in {elapsed_time:.2f} seconds")
+    if elapsed_time > 60:
+        print(f"({elapsed_time/60:.2f} minutes)")
 
 
 def parse_args_and_examples():

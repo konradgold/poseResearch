@@ -20,10 +20,12 @@ from utils.process_manager import ProcessManager
 from validation.pose_validator import PoseValidator
 
 
-def example_single_validation(gt_name: str, poses3d_name: str):
+def single_validation(
+    gt_name: str, poses3d_name: str, use_real_world_scale: bool = True
+):
     """Demonstrate single sequence validation."""
     print("\n" + "=" * 50)
-    print("SINGLE SEQUENCE VALIDATION EXAMPLE")
+    print("SINGLE SEQUENCE VALIDATION")
     print("=" * 50)
 
     pr_dir = Path(__file__).parent
@@ -45,14 +47,20 @@ def example_single_validation(gt_name: str, poses3d_name: str):
 
     # Validate
     print("\nRunning validation...")
-    similarity_score = validator.validate(
+    results = validator.validate(
         gt_data_loader=gt_loader,
         poses_3d_data_loader=poses_3d_loader,
-        gt_stage="flatpose",
-        poses_3d_stage="poselifting",
+        gt_name=gt_name,
+        poses_3d_name=poses3d_name,
+        use_real_world_scale=use_real_world_scale,
     )
 
-    return similarity_score
+    if use_real_world_scale:
+        overall_mpjpe = results["overall_real_mpjpe_mm"]
+    else:
+        overall_mpjpe = results["overall_mpjpe"]
+
+    print(f"--- Overall MPJPE: {overall_mpjpe:.0f} mm ---")
 
 
 def parse_args():
@@ -76,18 +84,10 @@ def parse_args():
 
 
 def main():
-    """Run all examples."""
-    print("POSE VALIDATOR - EXAMPLE USAGE")
-    print("=" * 50)
-
     args = parse_args()
 
     try:
-        # Single validation example
-        single_score = example_single_validation(args.gt_name, args.poses3d_name)
-
-        print(f"Validation score: {single_score:.4f}")
-
+        single_validation(args.gt_name, args.poses3d_name)
     except Exception as e:
         print(f"Error during example execution: {e}")
         import traceback

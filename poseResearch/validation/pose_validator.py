@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
-from utils.process_manager import ProcessManager, StageName
+from utils.process_manager import ProcessManager
 from visualizer.skeleton_config import AnatomicalSkeletonConfig
 
 
@@ -339,11 +339,10 @@ class PoseValidator:
         self,
         gt_data_loader: ProcessManager,
         poses_3d_data_loader: ProcessManager,
-        gt_stage: StageName = "flatpose",
-        poses_3d_stage: StageName = "poselifting",
+        gt_name: str,
+        poses_3d_name: str,
         use_real_world_scale: bool = True,
         save_to_csv: bool = True,
-        csv_output_path: str = "pose_gtcam22_cam22.csv",
     ) -> Dict[str, any]:
         """
         Validate 3D poses against 2D ground truth poses from DataLoaders using MPJPE.
@@ -351,27 +350,32 @@ class PoseValidator:
         Args:
             gt_data_loader: ProcessManager containing ground truth 2D poses
             poses_3d_data_loader: ProcessManager containing 3D poses
-            gt_stage: Stage name in gt_data_loader containing 2D poses
-            poses_3d_stage: Stage name in poses_3d_data_loader containing 3D poses
+            gt_name: Name of the ground truth data
+            poses_3d_name: Name of the 3D poses data
             use_real_world_scale: If True, scale MPJPE to real-world millimeters
             save_to_csv: Whether to save results to CSV file
-            csv_output_path: Path for CSV output file
 
         Returns:
             Dictionary containing validation results including per-joint MPJPE
         """
         # Get data from DataLoaders
-        gt_poses = gt_data_loader.get_tensor(gt_stage)
-        poses_3d = poses_3d_data_loader.get_tensor(poses_3d_stage)
+        gt_poses = gt_data_loader.get_tensor("flatpose")
+        poses_3d = poses_3d_data_loader.get_tensor("poselifting")
 
         if gt_poses is None:
-            raise ValueError(f"No ground truth data found for stage '{gt_stage}'")
+            raise ValueError("No ground truth data found for stage 'flatpose'")
         if poses_3d is None:
-            raise ValueError(f"No 3D poses data found for stage '{poses_3d_stage}'")
+            raise ValueError("No 3D poses data found for stage 'poselifting'")
 
         results = self._validate_poses(poses_3d, gt_poses, use_real_world_scale)
 
         if save_to_csv:
+            pr_dir = Path(__file__).parent
+            validation_dir = pr_dir / "validation-results"
+            validation_dir.mkdir(parents=True, exist_ok=True)
+            csv_output_path = (
+                validation_dir / f"validation-gt-{gt_name}--3d-{poses_3d_name}.csv"
+            )
             self.save_results_to_csv(results, csv_output_path)
 
         return results
@@ -451,7 +455,7 @@ class PoseValidator:
                     frame_mpjpe = self.mpjpe(valid_3d, valid_2d)
                     frame_per_joint_errors = self.mpjpe_per_joint(valid_3d, valid_2d)
 
-                print(f"Frame {frame_idx}: Overall MPJPE = {frame_mpjpe:.3f}")
+                print(f"Frame {frame_idx}: MPJPE = {frame_mpjpe:.3f}")
                 mpjpe_scores.append(frame_mpjpe)
                 all_per_joint_errors.append(frame_per_joint_errors)
                 frames_processed += 1
@@ -467,6 +471,8 @@ class PoseValidator:
                     frame_result["per_joint_real_mpjpe_mm"] = frame_per_joint_errors
 
                 frame_data.append(frame_result)
+
+        print(f"Frames processed: {frames_processed}/{num_frames}")
 
         # Calculate overall statistics
         overall_mpjpe = np.mean(mpjpe_scores) if mpjpe_scores else float("inf")
@@ -488,7 +494,7 @@ class PoseValidator:
                 joint_name: float("inf") for joint_name in self.joint_names
             }
 
-            # Prepare results dictionary
+        # Prepare results dictionary
         results = {
             "overall_mpjpe": overall_mpjpe,
             "per_joint_mpjpe": avg_per_joint_errors,
@@ -507,7 +513,6 @@ class PoseValidator:
         print(
             f"Overall MPJPE: {overall_mpjpe:.3f} {'mm' if use_real_world_scale else 'pixels'}"
         )
-        print(f"Frames processed: {frames_processed}/{num_frames}")
         print("\nPer-Joint MPJPE:")
         for joint_name, error in avg_per_joint_errors.items():
             if error != float("inf"):
