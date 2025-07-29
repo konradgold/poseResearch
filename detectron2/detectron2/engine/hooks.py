@@ -18,12 +18,12 @@ from fvcore.common.param_scheduler import ParamScheduler
 from fvcore.common.timer import Timer
 from fvcore.nn.precise_bn import get_bn_modules, update_bn_stats
 
-import detectron2.utils.comm as comm
-from detectron2.evaluation.testing import flatten_results_dict
-from detectron2.solver import LRMultiplier
-from detectron2.solver import LRScheduler as _LRScheduler
-from detectron2.utils.events import EventStorage, EventWriter
-from detectron2.utils.file_io import PathManager
+import detectron2.detectron2.utils.comm as comm
+from detectron2.detectron2.evaluation.testing import flatten_results_dict
+from detectron2.detectron2.solver import LRMultiplier
+from detectron2.detectron2.solver import LRScheduler as _LRScheduler
+from detectron2.detectron2.utils.events import EventStorage, EventWriter
+from detectron2.detectron2.utils.file_io import PathManager
 
 from .train_loop import HookBase
 
@@ -52,7 +52,9 @@ class CallbackHook(HookBase):
     Create a hook using callback functions provided by the user.
     """
 
-    def __init__(self, *, before_train=None, after_train=None, before_step=None, after_step=None):
+    def __init__(
+        self, *, before_train=None, after_train=None, before_step=None, after_step=None
+    ):
         """
         Each argument is a function that takes one argument: the trainer.
         """
@@ -116,7 +118,9 @@ class IterationTimer(HookBase):
         total_time_minus_hooks = self._total_timer.seconds()
         hook_time = total_time - total_time_minus_hooks
 
-        num_iter = self.trainer.storage.iter + 1 - self.trainer.start_iter - self._warmup_iter
+        num_iter = (
+            self.trainer.storage.iter + 1 - self.trainer.start_iter - self._warmup_iter
+        )
 
         if num_iter > 0 and total_time_minus_hooks > 0:
             # Speed is meaningful only after warmup
@@ -392,7 +396,9 @@ class TorchProfiler(HookBase):
     ``tensorboard --logdir OUTPUT_DIR/log``
     """
 
-    def __init__(self, enable_predicate, output_dir, *, activities=None, save_tensorboard=True):
+    def __init__(
+        self, enable_predicate, output_dir, *, activities=None, save_tensorboard=True
+    ):
         """
         Args:
             enable_predicate (callable[trainer -> bool]): a function which takes a trainer,
@@ -623,7 +629,9 @@ class PreciseBN(HookBase):
             for num_iter in itertools.count(1):
                 if num_iter % 100 == 0:
                     self._logger.info(
-                        "Running precise-BN ... {}/{} iterations.".format(num_iter, self._num_iter)
+                        "Running precise-BN ... {}/{} iterations.".format(
+                            num_iter, self._num_iter
+                        )
                     )
                 # This way we can reuse the same iterator
                 yield next(self._data_iter)

@@ -10,9 +10,9 @@ import warnings
 import cv2
 import tqdm
 
-from detectron2.config import get_cfg
-from detectron2.data.detection_utils import read_image
-from detectron2.utils.logger import setup_logger
+from detectron2.detectron2.config import get_cfg
+from detectron2.detectron2.data.detection_utils import read_image
+from detectron2.detectron2.utils.logger import setup_logger
 
 from vision.fair.detectron2.demo.predictor import VisualizationDemo
 
@@ -24,7 +24,7 @@ def setup_cfg(args):
     # load config from file and command-line arguments
     cfg = get_cfg()
     # To use demo for Panoptic-DeepLab, please uncomment the following two lines.
-    # from detectron2.projects.panoptic_deeplab import add_panoptic_deeplab_config  # noqa
+    # from detectron2.detectron2.projects.panoptic_deeplab import add_panoptic_deeplab_config  # noqa
     # add_panoptic_deeplab_config(cfg)
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)

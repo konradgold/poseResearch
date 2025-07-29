@@ -1,7 +1,7 @@
 import inspect
 import torch
 
-from detectron2.utils.env import TORCH_VERSION
+from detectron2.detectron2.utils.env import TORCH_VERSION
 
 try:
     from torch.fx._symbolic_trace import is_fx_tracing as is_fx_tracing_current
@@ -61,7 +61,9 @@ def _do_assert_fx_safe(condition: bool, message: str) -> torch.Tensor:
     try:
         if isinstance(condition, str):
             caller_frame = inspect.currentframe().f_back
-            torch._assert(eval(condition, caller_frame.f_globals, caller_frame.f_locals), message)
+            torch._assert(
+                eval(condition, caller_frame.f_globals, caller_frame.f_locals), message
+            )
             return torch.ones(1)
         else:
             torch._assert(condition, message)

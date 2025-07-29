@@ -9,10 +9,10 @@ from itertools import chain
 import pycocotools.mask as mask_util
 from PIL import Image
 
-from detectron2.structures import BoxMode
-from detectron2.utils.comm import get_world_size
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.logger import setup_logger
+from detectron2.detectron2.structures import BoxMode
+from detectron2.detectron2.utils.comm import get_world_size
+from detectron2.detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.logger import setup_logger
 
 try:
     import cv2  # noqa
@@ -39,7 +39,9 @@ def _get_cityscapes_files(image_dir, gt_dir):
             assert basename.endswith(suffix), basename
             basename = basename[: -len(suffix)]
 
-            instance_file = os.path.join(city_gt_dir, basename + "gtFine_instanceIds.png")
+            instance_file = os.path.join(
+                city_gt_dir, basename + "gtFine_instanceIds.png"
+            )
             label_file = os.path.join(city_gt_dir, basename + "gtFine_labelIds.png")
             json_file = os.path.join(city_gt_dir, basename + "gtFine_polygons.json")
 
@@ -76,13 +78,17 @@ def load_cityscapes_instances(image_dir, gt_dir, from_json=True, to_polygons=Tru
     pool = mp.Pool(processes=max(mp.cpu_count() // get_world_size() // 2, 4))
 
     ret = pool.map(
-        functools.partial(_cityscapes_files_to_dict, from_json=from_json, to_polygons=to_polygons),
+        functools.partial(
+            _cityscapes_files_to_dict, from_json=from_json, to_polygons=to_polygons
+        ),
         files,
     )
     logger.info("Loaded {} images from {}".format(len(ret), image_dir))
 
     # Map cityscape ids to contiguous ids
-    from deeplearning.projects.cityscapesApi.cityscapesscripts.helpers.labels import labels
+    from deeplearning.projects.cityscapesApi.cityscapesscripts.helpers.labels import (
+        labels,
+    )
 
     labels = [l for l in labels if l.hasInstances and not l.ignoreInEval]
     dataset_id_to_contiguous_id = {l.id: idx for idx, l in enumerate(labels)}
@@ -105,7 +111,9 @@ def load_cityscapes_semantic(image_dir, gt_dir):
     ret = []
     # gt_dir is small and contain many small files. make sense to fetch to local first
     gt_dir = PathManager.get_local_path(gt_dir)
-    for image_file, _, label_file, json_file in _get_cityscapes_files(image_dir, gt_dir):
+    for image_file, _, label_file, json_file in _get_cityscapes_files(
+        image_dir, gt_dir
+    ):
         label_file = label_file.replace("labelIds", "labelTrainIds")
 
         with PathManager.open(json_file, "r") as f:
@@ -212,7 +220,9 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
             elif isinstance(poly_wo_overlaps, MultiPolygon):
                 poly_list = poly_wo_overlaps.geoms
             else:
-                raise NotImplementedError("Unknown geometric structure {}".format(poly_wo_overlaps))
+                raise NotImplementedError(
+                    "Unknown geometric structure {}".format(poly_wo_overlaps)
+                )
 
             poly_coord = []
             for poly_el in poly_list:
@@ -266,9 +276,9 @@ def _cityscapes_files_to_dict(files, from_json, to_polygons):
             if to_polygons:
                 # This conversion comes from D4809743 and D5171122,
                 # when Mask-RCNN was first developed.
-                contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[
-                    -2
-                ]
+                contours = cv2.findContours(
+                    mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+                )[-2]
                 polygons = [c.reshape(-1).tolist() for c in contours if len(c) >= 3]
                 # opencv's can produce invalid polygons
                 if len(polygons) == 0:
@@ -297,9 +307,11 @@ def main() -> None:
     parser.add_argument("gt_dir")
     parser.add_argument("--type", choices=["instance", "semantic"], default="instance")
     args = parser.parse_args()
-    from deeplearning.projects.cityscapesApi.cityscapesscripts.helpers.labels import labels
-    from detectron2.data.catalog import Metadata
-    from detectron2.utils.visualizer import Visualizer
+    from deeplearning.projects.cityscapesApi.cityscapesscripts.helpers.labels import (
+        labels,
+    )
+    from detectron2.detectron2.data.catalog import Metadata
+    from detectron2.detectron2.utils.visualizer import Visualizer
 
     logger = setup_logger(name=__name__)
 
@@ -312,7 +324,9 @@ def main() -> None:
         )
         logger.info("Done loading {} samples.".format(len(dicts)))
 
-        thing_classes = [k.name for k in labels if k.hasInstances and not k.ignoreInEval]
+        thing_classes = [
+            k.name for k in labels if k.hasInstances and not k.ignoreInEval
+        ]
         meta = Metadata().set(thing_classes=thing_classes)
 
     else:

@@ -11,8 +11,8 @@ from torch import nn
 
 # need some explicit imports due to https://github.com/pytorch/pytorch/issues/38964
 import detectron2  # noqa F401
-from detectron2.structures import Boxes, Instances
-from detectron2.utils.env import _import_file
+from detectron2.detectron2.structures import Boxes, Instances
+from detectron2.detectron2.utils.env import _import_file
 
 _counter = 0
 
@@ -55,9 +55,12 @@ def patch_instances(fields):
     See more in `scripting_with_instances`.
     """
 
-    with tempfile.TemporaryDirectory(prefix="detectron2") as dir, tempfile.NamedTemporaryFile(
-        mode="w", encoding="utf-8", suffix=".py", dir=dir, delete=False
-    ) as f:
+    with (
+        tempfile.TemporaryDirectory(prefix="detectron2") as dir,
+        tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", suffix=".py", dir=dir, delete=False
+        ) as f,
+    ):
         try:
             # Objects that use Instances should not reuse previously-compiled
             # results in cache, because `Instances` could be a new class each time.
@@ -74,7 +77,9 @@ def patch_instances(fields):
             # let torchscript think Instances was scripted already
             Instances.__torch_script_class__ = True
             # let torchscript find new_instances when looking for the jit type of Instances
-            Instances._jit_override_qualname = torch._jit_internal._qualified_name(new_instances)
+            Instances._jit_override_qualname = torch._jit_internal._qualified_name(
+                new_instances
+            )
 
             _add_instances_conversion_methods(new_instances)
             yield new_instances
@@ -113,7 +118,9 @@ def _gen_instance_class(fields):
     cls_name = "ScriptedInstances{}".format(_counter)
 
     field_names = tuple(x.name for x in fields)
-    extra_args = ", ".join([f"{f.name}: Optional[{f.annotation}] = None" for f in fields])
+    extra_args = ", ".join(
+        [f"{f.name}: Optional[{f.annotation}] = None" for f in fields]
+    )
     lines.append(
         f"""
 class {cls_name}:
@@ -125,7 +132,10 @@ class {cls_name}:
 
     for f in fields:
         lines.append(
-            indent(2, f"self._{f.name} = torch.jit.annotate(Optional[{f.annotation}], {f.name})")
+            indent(
+                2,
+                f"self._{f.name} = torch.jit.annotate(Optional[{f.annotation}], {f.name})",
+            )
         )
 
     for f in fields:
@@ -297,7 +307,7 @@ import typing
 from typing import *
 
 import detectron2
-from detectron2.structures import Boxes, Instances
+from detectron2.detectron2.structures import Boxes, Instances
 
 """
 
@@ -308,7 +318,9 @@ from detectron2.structures import Boxes, Instances
 
 def _import(path):
     return _import_file(
-        "{}{}".format(sys.modules[__name__].__name__, _counter), path, make_importable=True
+        "{}{}".format(sys.modules[__name__].__name__, _counter),
+        path,
+        make_importable=True,
     )
 
 
@@ -347,7 +359,7 @@ def patch_nonscriptable_classes():
     # __prepare_scriptable__ can also be added to models for easier maintenance.
     # But it complicates the clean model code.
 
-    from detectron2.modeling.backbone import ResNet, FPN
+    from detectron2.detectron2.modeling.backbone import ResNet, FPN
 
     # Due to https://github.com/pytorch/pytorch/issues/36061,
     # we change backbone to use ModuleList for scripting.
@@ -375,7 +387,7 @@ def patch_nonscriptable_classes():
 
     # Annotate some attributes to be constants for the purpose of scripting,
     # even though they are not constants in eager mode.
-    from detectron2.modeling.roi_heads import StandardROIHeads
+    from detectron2.detectron2.modeling.roi_heads import StandardROIHeads
 
     if hasattr(StandardROIHeads, "__annotations__"):
         # copy first to avoid editing annotations of base class

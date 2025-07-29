@@ -5,9 +5,9 @@ import numpy as np
 import torch
 
 # fmt: off
-from detectron2.data.detection_utils import \
+from detectron2.detectron2.data.detection_utils import \
     annotations_to_instances as base_annotations_to_instances
-from detectron2.data.detection_utils import \
+from detectron2.detectron2.data.detection_utils import \
     transform_instance_annotations as base_transform_instance_annotations
 
 # fmt: on
@@ -93,7 +93,9 @@ def transform_instance_annotations(
         point_coords = transforms.apply_coords(point_coords)
 
         # Set all out-of-boundary points to "unlabeled"
-        inside = (point_coords >= np.array([0, 0])) & (point_coords <= np.array(image_size[::-1]))
+        inside = (point_coords >= np.array([0, 0])) & (
+            point_coords <= np.array(image_size[::-1])
+        )
         inside = inside.all(axis=1)
         point_labels[~inside] = -1
 

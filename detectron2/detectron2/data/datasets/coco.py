@@ -12,8 +12,8 @@ from fvcore.common.timer import Timer
 from iopath.common.file_io import file_lock
 from PIL import Image
 
-from detectron2.structures import Boxes, BoxMode, PolygonMasks, RotatedBoxes
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.structures import Boxes, BoxMode, PolygonMasks, RotatedBoxes
+from detectron2.detectron2.utils.file_io import PathManager
 
 from .. import DatasetCatalog, MetadataCatalog
 
@@ -32,7 +32,9 @@ __all__ = [
 ]
 
 
-def load_coco_json(json_file, image_root, dataset_name=None, extra_annotation_keys=None):
+def load_coco_json(
+    json_file, image_root, dataset_name=None, extra_annotation_keys=None
+):
     """
     Load a json file with COCO's instances annotation format.
     Currently supports instance detection, instance segmentation,
@@ -73,7 +75,9 @@ def load_coco_json(json_file, image_root, dataset_name=None, extra_annotation_ke
     with contextlib.redirect_stdout(io.StringIO()):
         coco_api = COCO(json_file)
     if timer.seconds() > 1:
-        logger.info("Loading {} takes {:.2f} seconds.".format(json_file, timer.seconds()))
+        logger.info(
+            "Loading {} takes {:.2f} seconds.".format(json_file, timer.seconds())
+        )
 
     id_map = None
     if dataset_name is not None:
@@ -142,16 +146,20 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
         # However the ratio of buggy annotations there is tiny and does not affect accuracy.
         # Therefore we explicitly white-list them.
         ann_ids = [ann["id"] for anns_per_image in anns for ann in anns_per_image]
-        assert len(set(ann_ids)) == len(ann_ids), "Annotation ids in '{}' are not unique!".format(
-            json_file
-        )
+        assert len(set(ann_ids)) == len(
+            ann_ids
+        ), "Annotation ids in '{}' are not unique!".format(json_file)
 
     imgs_anns = list(zip(imgs, anns))
-    logger.info("Loaded {} images in COCO format from {}".format(len(imgs_anns), json_file))
+    logger.info(
+        "Loaded {} images in COCO format from {}".format(len(imgs_anns), json_file)
+    )
 
     dataset_dicts = []
 
-    ann_keys = ["iscrowd", "bbox", "keypoints", "category_id"] + (extra_annotation_keys or [])
+    ann_keys = ["iscrowd", "bbox", "keypoints", "category_id"] + (
+        extra_annotation_keys or []
+    )
 
     num_instances_without_valid_segmentation = 0
 
@@ -173,7 +181,9 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
             # can trigger this assertion.
             assert anno["image_id"] == image_id
 
-            assert anno.get("ignore", 0) == 0, '"ignore" in COCO json file is not supported.'
+            assert (
+                anno.get("ignore", 0) == 0
+            ), '"ignore" in COCO json file is not supported.'
 
             obj = {key: anno[key] for key in ann_keys if key in anno}
             if "bbox" in obj and len(obj["bbox"]) == 0:
@@ -190,7 +200,9 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
                         segm = mask_util.frPyObjects(segm, *segm["size"])
                 else:
                     # filter out invalid polygons (< 3 points)
-                    segm = [poly for poly in segm if len(poly) % 2 == 0 and len(poly) >= 6]
+                    segm = [
+                        poly for poly in segm if len(poly) % 2 == 0 and len(poly) >= 6
+                    ]
                     if len(segm) == 0:
                         num_instances_without_valid_segmentation += 1
                         continue  # ignore this instance
@@ -268,11 +280,19 @@ def load_sem_seg(gt_root, image_root, gt_ext="png", image_ext="jpg"):
         return image_id
 
     input_files = sorted(
-        (os.path.join(image_root, f) for f in PathManager.ls(image_root) if f.endswith(image_ext)),
+        (
+            os.path.join(image_root, f)
+            for f in PathManager.ls(image_root)
+            if f.endswith(image_ext)
+        ),
         key=lambda file_path: file2id(image_root, file_path),
     )
     gt_files = sorted(
-        (os.path.join(gt_root, f) for f in PathManager.ls(gt_root) if f.endswith(gt_ext)),
+        (
+            os.path.join(gt_root, f)
+            for f in PathManager.ls(gt_root)
+            if f.endswith(gt_ext)
+        ),
         key=lambda file_path: file2id(gt_root, file_path),
     )
 
@@ -295,7 +315,9 @@ def load_sem_seg(gt_root, image_root, gt_ext="png", image_ext="jpg"):
         gt_files = [os.path.join(gt_root, f + gt_ext) for f in intersect]
 
     logger.info(
-        "Loaded {} images with semantic segmentation from {}".format(len(input_files), image_root)
+        "Loaded {} images with semantic segmentation from {}".format(
+            len(input_files), image_root
+        )
     )
 
     dataset_dicts = []
@@ -333,8 +355,12 @@ def convert_to_coco_dict(dataset_name):
 
     # unmap the category mapping ids for COCO
     if hasattr(metadata, "thing_dataset_id_to_contiguous_id"):
-        reverse_id_mapping = {v: k for k, v in metadata.thing_dataset_id_to_contiguous_id.items()}
-        reverse_id_mapper = lambda contiguous_id: reverse_id_mapping[contiguous_id]  # noqa
+        reverse_id_mapping = {
+            v: k for k, v in metadata.thing_dataset_id_to_contiguous_id.items()
+        }
+        reverse_id_mapper = lambda contiguous_id: reverse_id_mapping[
+            contiguous_id
+        ]  # noqa
     else:
         reverse_id_mapper = lambda contiguous_id: contiguous_id  # noqa
 
@@ -365,7 +391,9 @@ def convert_to_coco_dict(dataset_name):
             bbox = annotation["bbox"]
             if isinstance(bbox, np.ndarray):
                 if bbox.ndim != 1:
-                    raise ValueError(f"bbox has to be 1-dimensional. Got shape={bbox.shape}.")
+                    raise ValueError(
+                        f"bbox has to be 1-dimensional. Got shape={bbox.shape}."
+                    )
                 bbox = bbox.tolist()
             if len(bbox) not in [4, 5]:
                 raise ValueError(f"bbox has to has length 4 or 5. Got {bbox}.")
@@ -415,7 +443,9 @@ def convert_to_coco_dict(dataset_name):
             coco_annotation["bbox"] = [round(float(x), 3) for x in bbox]
             coco_annotation["area"] = float(area)
             coco_annotation["iscrowd"] = int(annotation.get("iscrowd", 0))
-            coco_annotation["category_id"] = int(reverse_id_mapper(annotation["category_id"]))
+            coco_annotation["category_id"] = int(
+                reverse_id_mapper(annotation["category_id"])
+            )
 
             # Add optional fields
             if "keypoints" in annotation:
@@ -476,7 +506,9 @@ def convert_to_coco_json(dataset_name, output_file, allow_cached=True):
                 "You need to clear the cache file if your dataset has been modified."
             )
         else:
-            logger.info(f"Converting annotations of dataset '{dataset_name}' to COCO format ...)")
+            logger.info(
+                f"Converting annotations of dataset '{dataset_name}' to COCO format ...)"
+            )
             coco_dict = convert_to_coco_dict(dataset_name)
 
             logger.info(f"Caching COCO format annotations at '{output_file}' ...")
@@ -508,7 +540,9 @@ def register_coco_instances(name, metadata, json_file, image_root):
     assert isinstance(image_root, (str, os.PathLike)), image_root
     # 1. register a function which returns dicts
     if name not in DatasetCatalog:
-        DatasetCatalog.register(name, lambda: load_coco_json(json_file, image_root, name))
+        DatasetCatalog.register(
+            name, lambda: load_coco_json(json_file, image_root, name)
+        )
 
     # 2. Optionally, add metadata about this dataset,
     # since they might be useful in evaluation, visualization or logging
@@ -531,9 +565,9 @@ def main() -> None:
     """
     import sys
 
-    import detectron2.data.datasets  # noqa  # add pre-defined metadata
-    from detectron2.utils.logger import setup_logger
-    from detectron2.utils.visualizer import Visualizer
+    import detectron2.detectron2.data.datasets  # noqa  # add pre-defined metadata
+    from detectron2.detectron2.utils.logger import setup_logger
+    from detectron2.detectron2.utils.visualizer import Visualizer
 
     logger = setup_logger(name=__name__)
     assert sys.argv[3] in DatasetCatalog.list()

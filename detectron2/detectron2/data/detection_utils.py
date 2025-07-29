@@ -12,7 +12,7 @@ import pycocotools.mask as mask_util
 import torch
 from PIL import Image
 
-from detectron2.structures import (
+from detectron2.detectron2.structures import (
     BitMasks,
     Boxes,
     BoxMode,
@@ -22,7 +22,7 @@ from detectron2.structures import (
     RotatedBoxes,
     polygons_to_bitmask,
 )
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.file_io import PathManager
 
 from . import transforms as T
 from .catalog import MetadataCatalog
@@ -50,7 +50,11 @@ class SizeMismatchError(ValueError):
 
 
 # https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
-_M_RGB2YUV = [[0.299, 0.587, 0.114], [-0.14713, -0.28886, 0.436], [0.615, -0.51499, -0.10001]]
+_M_RGB2YUV = [
+    [0.299, 0.587, 0.114],
+    [-0.14713, -0.28886, 0.436],
+    [0.615, -0.51499, -0.10001],
+]
 _M_YUV2RGB = [[1.0, 0.0, 1.13983], [1.0, -0.39465, -0.58060], [1.0, 2.03211, 0.0]]
 
 # https://www.exiv2.org/tags.html
@@ -214,7 +218,9 @@ def check_image_size(dataset_dict, image):
         dataset_dict["height"] = image.shape[0]
 
 
-def transform_proposals(dataset_dict, image_shape, transforms, *, proposal_topk, min_box_size=0):
+def transform_proposals(
+    dataset_dict, image_shape, transforms, *, proposal_topk, min_box_size=0
+):
     """
     Apply transformations to the proposals in dataset_dict, if any.
 
@@ -266,7 +272,9 @@ def get_bbox(annotation):
         bbox (ndarray): x1, y1, x2, y2 coordinates
     """
     # bbox is 1d (per-instance bounding box)
-    bbox = BoxMode.convert(annotation["bbox"], annotation["bbox_mode"], BoxMode.XYXY_ABS)
+    bbox = BoxMode.convert(
+        annotation["bbox"], annotation["bbox_mode"], BoxMode.XYXY_ABS
+    )
     return bbox
 
 
@@ -297,7 +305,9 @@ def transform_instance_annotations(
     if isinstance(transforms, (tuple, list)):
         transforms = T.TransformList(transforms)
     # bbox is 1d (per-instance bounding box)
-    bbox = BoxMode.convert(annotation["bbox"], annotation["bbox_mode"], BoxMode.XYXY_ABS)
+    bbox = BoxMode.convert(
+        annotation["bbox"], annotation["bbox_mode"], BoxMode.XYXY_ABS
+    )
     # clip transformed bbox to image size
     bbox = transforms.apply_box(np.array([bbox]))[0].clip(min=0)
     annotation["bbox"] = np.minimum(bbox, list(image_size + image_size)[::-1])
@@ -334,7 +344,9 @@ def transform_instance_annotations(
     return annotation
 
 
-def transform_keypoint_annotations(keypoints, transforms, image_size, keypoint_hflip_indices=None):
+def transform_keypoint_annotations(
+    keypoints, transforms, image_size, keypoint_hflip_indices=None
+):
     """
     Transform keypoint annotations of an image.
     If a keypoint is transformed out of image boundary, it will be marked "unlabeled" (visibility=0)
@@ -353,13 +365,17 @@ def transform_keypoint_annotations(keypoints, transforms, image_size, keypoint_h
     keypoints_xy = transforms.apply_coords(keypoints[:, :2])
 
     # Set all out-of-boundary points to "unlabeled"
-    inside = (keypoints_xy >= np.array([0, 0])) & (keypoints_xy <= np.array(image_size[::-1]))
+    inside = (keypoints_xy >= np.array([0, 0])) & (
+        keypoints_xy <= np.array(image_size[::-1])
+    )
     inside = inside.all(axis=1)
     keypoints[:, :2] = keypoints_xy
     keypoints[:, 2][~inside] = 0
 
     # This assumes that HorizFlipTransform is the only one that does flip
-    do_hflip = sum(isinstance(t, T.HFlipTransform) for t in transforms.transforms) % 2 == 1
+    do_hflip = (
+        sum(isinstance(t, T.HFlipTransform) for t in transforms.transforms) % 2 == 1
+    )
 
     # Alternative way: check if probe points was horizontally flipped.
     # probe = np.asarray([[0.0, 0.0], [image_width, 0.0]])
@@ -373,7 +389,9 @@ def transform_keypoint_annotations(keypoints, transforms, image_size, keypoint_h
         if len(keypoints) != len(keypoint_hflip_indices):
             raise ValueError(
                 "Keypoint data has {} points, but metadata "
-                "contains {} points!".format(len(keypoints), len(keypoint_hflip_indices))
+                "contains {} points!".format(
+                    len(keypoints), len(keypoint_hflip_indices)
+                )
             )
         keypoints = keypoints[np.asarray(keypoint_hflip_indices, dtype=np.int32), :]
 
@@ -400,7 +418,10 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
     """
     boxes = (
         np.stack(
-            [BoxMode.convert(obj["bbox"], obj["bbox_mode"], BoxMode.XYXY_ABS) for obj in annos]
+            [
+                BoxMode.convert(obj["bbox"], obj["bbox_mode"], BoxMode.XYXY_ABS)
+                for obj in annos
+            ]
         )
         if len(annos)
         else np.zeros((0, 4))
@@ -432,9 +453,9 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
                     # COCO RLE
                     masks.append(mask_util.decode(segm))
                 elif isinstance(segm, np.ndarray):
-                    assert segm.ndim == 2, "Expect segmentation of 2 dimensions, got {}.".format(
-                        segm.ndim
-                    )
+                    assert (
+                        segm.ndim == 2
+                    ), "Expect segmentation of 2 dimensions, got {}.".format(segm.ndim)
                     # mask array
                     masks.append(segm)
                 else:
@@ -547,7 +568,9 @@ def create_keypoint_hflip_indices(dataset_names: Union[str, List[str]]) -> List[
     return flip_indices
 
 
-def get_fed_loss_cls_weights(dataset_names: Union[str, List[str]], freq_weight_power=1.0):
+def get_fed_loss_cls_weights(
+    dataset_names: Union[str, List[str]], freq_weight_power=1.0
+):
     """
     Get frequency weight for each class sorted by class id.
     We now calcualte freqency weight using image_count to the power freq_weight_power.
@@ -619,7 +642,9 @@ def check_metadata_consistency(key, dataset_names):
     for idx, entry in enumerate(entries_per_dataset):
         if entry != entries_per_dataset[0]:
             logger.error(
-                "Metadata '{}' for dataset '{}' is '{}'".format(key, dataset_names[idx], str(entry))
+                "Metadata '{}' for dataset '{}' is '{}'".format(
+                    key, dataset_names[idx], str(entry)
+                )
             )
             logger.error(
                 "Metadata '{}' for dataset '{}' is '{}'".format(

@@ -4,8 +4,8 @@
 import numpy as np
 from typing import List
 
-from detectron2.config import CfgNode as CfgNode_
-from detectron2.config import configurable
+from detectron2.detectron2.config import CfgNode as CfgNode_
+from detectron2.detectron2.config import configurable
 
 from .base_tracker import TRACKER_HEADS_REGISTRY
 from .vanilla_hungarian_bbox_iou_tracker import VanillaHungarianBBoxIOUTracker
@@ -86,7 +86,9 @@ class IOUWeightedHungarianBBoxIOUTracker(VanillaHungarianBBoxIOUTracker):
             "track_iou_threshold": track_iou_threshold,
         }
 
-    def assign_cost_matrix_values(self, cost_matrix: np.ndarray, bbox_pairs: List) -> np.ndarray:
+    def assign_cost_matrix_values(
+        self, cost_matrix: np.ndarray, bbox_pairs: List
+    ) -> np.ndarray:
         """
         Based on IoU for each pair of bbox, assign the associated value in cost matrix
 

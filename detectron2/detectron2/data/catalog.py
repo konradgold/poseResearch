@@ -5,7 +5,7 @@ import types
 from collections import UserDict
 from typing import List
 
-from detectron2.utils.logger import log_first_n
+from detectron2.detectron2.utils.logger import log_first_n
 
 __all__ = ["DatasetCatalog", "MetadataCatalog", "Metadata"]
 
@@ -33,7 +33,9 @@ class _DatasetCatalog(UserDict):
             func (callable): a callable which takes no arguments and returns a list of dicts.
                 It must return the same results if called multiple times.
         """
-        assert callable(func), "You must register a function with `DatasetCatalog.register`!"
+        assert callable(
+            func
+        ), "You must register a function with `DatasetCatalog.register`!"
         assert name not in self, "Dataset '{}' is already registered!".format(name)
         self[name] = func
 

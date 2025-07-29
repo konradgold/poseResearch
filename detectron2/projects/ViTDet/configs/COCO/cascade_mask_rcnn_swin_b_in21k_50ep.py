@@ -1,9 +1,9 @@
 from fvcore.common.param_scheduler import MultiStepParamScheduler
 
 from detectron2 import model_zoo
-from detectron2.config import LazyCall as L
-from detectron2.solver import WarmupParamScheduler
-from detectron2.modeling import SwinTransformer
+from detectron2.detectron2.config import LazyCall as L
+from detectron2.detectron2.solver import WarmupParamScheduler
+from detectron2.detectron2.modeling import SwinTransformer
 
 from ..common.coco_loader_lsj import dataloader
 from .cascade_mask_rcnn_mvitv2_b_in21k_100ep import model
@@ -21,7 +21,9 @@ model.backbone.square_pad = 1024
 train = model_zoo.get_config("common/train.py").train
 train.amp.enabled = True
 train.ddp.fp16_compression = True
-train.init_checkpoint = "detectron2://ImageNetPretrained/swin/swin_base_patch4_window7_224_22k.pth"
+train.init_checkpoint = (
+    "detectron2://ImageNetPretrained/swin/swin_base_patch4_window7_224_22k.pth"
+)
 
 # Schedule
 # 100 ep = 184375 iters * 64 images/iter / 118000 images/ep

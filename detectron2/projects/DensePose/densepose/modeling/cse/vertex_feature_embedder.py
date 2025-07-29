@@ -6,7 +6,7 @@ import pickle
 import torch
 from torch import nn
 
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.file_io import PathManager
 
 from .utils import normalize_embeddings
 
@@ -24,7 +24,11 @@ class VertexFeatureEmbedder(nn.Module):
     """
 
     def __init__(
-        self, num_vertices: int, feature_dim: int, embed_dim: int, train_features: bool = False
+        self,
+        num_vertices: int,
+        feature_dim: int,
+        embed_dim: int,
+        train_features: bool = False,
     ):
         """
         Initialize embedder, set random embeddings
@@ -73,5 +77,7 @@ class VertexFeatureEmbedder(nn.Module):
             for name in ["features", "embeddings"]:
                 if name in data:
                     getattr(self, name).copy_(
-                        torch.tensor(data[name]).float().to(device=getattr(self, name).device)
+                        torch.tensor(data[name])
+                        .float()
+                        .to(device=getattr(self, name).device)
                     )

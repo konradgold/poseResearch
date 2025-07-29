@@ -4,7 +4,7 @@
 
 from typing import Any
 
-from detectron2.structures import Boxes
+from detectron2.detectron2.structures import Boxes
 
 from ..structures import DensePoseChartResult, DensePoseChartResultWithConfidences
 from .base import BaseConverter
@@ -22,7 +22,9 @@ class ToChartResultConverter(BaseConverter):
     @classmethod
     # pyre-fixme[14]: `convert` overrides method defined in `BaseConverter`
     #  inconsistently.
-    def convert(cls, predictor_outputs: Any, boxes: Boxes, *args, **kwargs) -> DensePoseChartResult:
+    def convert(
+        cls, predictor_outputs: Any, boxes: Boxes, *args, **kwargs
+    ) -> DensePoseChartResult:
         """
         Convert DensePose predictor outputs to DensePoseResult using some registered
         converter. Does recursive lookup for base classes, so there's no need
@@ -36,7 +38,9 @@ class ToChartResultConverter(BaseConverter):
         Return:
             An instance of DensePoseResult. If no suitable converter was found, raises KeyError
         """
-        return super(ToChartResultConverter, cls).convert(predictor_outputs, boxes, *args, **kwargs)
+        return super(ToChartResultConverter, cls).convert(
+            predictor_outputs, boxes, *args, **kwargs
+        )
 
 
 class ToChartResultConverterWithConfidences(BaseConverter):

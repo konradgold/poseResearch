@@ -9,13 +9,22 @@ This script is a simplified version of the training script in detectron2/tools.
 
 import os
 
-import detectron2.data.transforms as T
-import detectron2.utils.comm as comm
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import get_cfg
-from detectron2.data import DatasetMapper, MetadataCatalog, build_detection_train_loader
-from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
-from detectron2.evaluation import (
+import detectron2.detectron2.data.transforms as T
+import detectron2.detectron2.utils.comm as comm
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import get_cfg
+from detectron2.detectron2.data import (
+    DatasetMapper,
+    MetadataCatalog,
+    build_detection_train_loader,
+)
+from detectron2.detectron2.engine import (
+    DefaultTrainer,
+    default_argument_parser,
+    default_setup,
+    launch,
+)
+from detectron2.detectron2.evaluation import (
     CityscapesInstanceEvaluator,
     CityscapesSemSegEvaluator,
     COCOEvaluator,
@@ -24,7 +33,10 @@ from detectron2.evaluation import (
     SemSegEvaluator,
     verify_results,
 )
-from detectron2.projects.point_rend import ColorAugSSDTransform, add_pointrend_config
+from detectron2.detectron2.projects.point_rend import (
+    ColorAugSSDTransform,
+    add_pointrend_config,
+)
 
 
 def build_sem_seg_train_aug(cfg):
@@ -97,7 +109,9 @@ class Trainer(DefaultTrainer):
     @classmethod
     def build_train_loader(cls, cfg):
         if "SemanticSegmentor" in cfg.MODEL.META_ARCHITECTURE:
-            mapper = DatasetMapper(cfg, is_train=True, augmentations=build_sem_seg_train_aug(cfg))
+            mapper = DatasetMapper(
+                cfg, is_train=True, augmentations=build_sem_seg_train_aug(cfg)
+            )
         else:
             mapper = None
         return build_detection_train_loader(cfg, mapper=mapper)

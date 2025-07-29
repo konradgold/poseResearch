@@ -6,7 +6,7 @@ import pickle
 import torch
 from torch import nn
 
-from detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.file_io import PathManager
 
 from .utils import normalize_embeddings
 
@@ -62,5 +62,7 @@ class VertexDirectEmbedder(nn.Module):
             for name in ["embeddings"]:
                 if name in data:
                     getattr(self, name).copy_(
-                        torch.tensor(data[name]).float().to(device=getattr(self, name).device)
+                        torch.tensor(data[name])
+                        .float()
+                        .to(device=getattr(self, name).device)
                     )

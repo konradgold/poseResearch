@@ -12,8 +12,8 @@ from fvcore.common.param_scheduler import (
     StepWithFixedGammaParamScheduler,
 )
 
-from detectron2.config import CfgNode
-from detectron2.utils.env import TORCH_VERSION
+from detectron2.detectron2.config import CfgNode
+from detectron2.detectron2.utils.env import TORCH_VERSION
 
 from .lr_scheduler import LRMultiplier, LRScheduler, WarmupParamScheduler
 
@@ -228,7 +228,9 @@ def get_default_optimizer_params(
             if isinstance(module, norm_module_types) and weight_decay_norm is not None:
                 hyperparams["weight_decay"] = weight_decay_norm
             if lr_factor_func is not None:
-                hyperparams["lr"] *= lr_factor_func(f"{module_name}.{module_param_name}")
+                hyperparams["lr"] *= lr_factor_func(
+                    f"{module_name}.{module_param_name}"
+                )
 
             hyperparams.update(overrides.get(module_param_name, {}))
             params.append({"params": [value], **hyperparams})
@@ -241,10 +243,14 @@ def _expand_param_groups(params: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     ret = defaultdict(dict)
     for item in params:
         assert "params" in item
-        cur_params = {x: y for x, y in item.items() if x != "params" and x != "param_names"}
+        cur_params = {
+            x: y for x, y in item.items() if x != "params" and x != "param_names"
+        }
         if "param_names" in item:
             for param_name, param in zip(item["param_names"], item["params"]):
-                ret[param].update({"param_names": [param_name], "params": [param], **cur_params})
+                ret[param].update(
+                    {"param_names": [param_name], "params": [param], **cur_params}
+                )
         else:
             for param in item["params"]:
                 ret[param].update({"params": [param], **cur_params})
@@ -261,7 +267,9 @@ def reduce_param_groups(params: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     params = _expand_param_groups(params)
     groups = defaultdict(list)  # re-group all parameter groups by their hyperparams
     for item in params:
-        cur_params = tuple((x, y) for x, y in item.items() if x != "params" and x != "param_names")
+        cur_params = tuple(
+            (x, y) for x, y in item.items() if x != "params" and x != "param_names"
+        )
         groups[cur_params].append({"params": item["params"]})
         if "param_names" in item:
             groups[cur_params][-1]["param_names"] = item["param_names"]
@@ -274,7 +282,9 @@ def reduce_param_groups(params: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         )
         if len(param_values) > 0 and "param_names" in param_values[0]:
             cur["param_names"] = list(
-                itertools.chain.from_iterable([params["param_names"] for params in param_values])
+                itertools.chain.from_iterable(
+                    [params["param_names"] for params in param_values]
+                )
             )
         ret.append(cur)
     return ret

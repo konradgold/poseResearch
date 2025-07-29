@@ -1,0 +1,5 @@
+[project]
+name = "VideoPose3D"
+version = "0.1.0"
+description = "VideoPose3D: A PyTorch-based modular object detection library"
+readme = "README.md"

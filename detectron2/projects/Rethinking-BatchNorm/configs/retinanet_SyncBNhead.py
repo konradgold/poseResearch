@@ -1,4 +1,4 @@
-from detectron2.model_zoo import get_config
+from detectron2.detectron2.model_zoo import get_config
 from torch import nn
 
 model = get_config("common/models/retinanet.py").model

@@ -6,20 +6,25 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from detectron2.config import configurable
-from detectron2.data import MetadataCatalog
-from detectron2.layers import Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
-from detectron2.modeling import (
+from detectron2.detectron2.config import configurable
+from detectron2.detectron2.data import MetadataCatalog
+from detectron2.detectron2.layers import (
+    Conv2d,
+    DepthwiseSeparableConv2d,
+    ShapeSpec,
+    get_norm,
+)
+from detectron2.detectron2.modeling import (
     META_ARCH_REGISTRY,
     SEM_SEG_HEADS_REGISTRY,
     build_backbone,
     build_sem_seg_head,
 )
-from detectron2.modeling.postprocessing import sem_seg_postprocess
-from detectron2.projects.deeplab import DeepLabV3PlusHead
-from detectron2.projects.deeplab.loss import DeepLabCE
-from detectron2.structures import BitMasks, ImageList, Instances
-from detectron2.utils.registry import Registry
+from detectron2.detectron2.modeling.postprocessing import sem_seg_postprocess
+from detectron2.detectron2.projects.deeplab import DeepLabV3PlusHead
+from detectron2.detectron2.projects.deeplab.loss import DeepLabCE
+from detectron2.detectron2.structures import BitMasks, ImageList, Instances
+from detectron2.detectron2.utils.registry import Registry
 
 from .post_processing import get_panoptic_segmentation
 
@@ -44,21 +49,29 @@ class PanopticDeepLab(nn.Module):
         self.backbone = build_backbone(cfg)
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
-        self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
-        self.register_buffer("pixel_std", torch.tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1), False)
+        self.register_buffer(
+            "pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False
+        )
+        self.register_buffer(
+            "pixel_std", torch.tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1), False
+        )
         self.meta = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
         self.stuff_area = cfg.MODEL.PANOPTIC_DEEPLAB.STUFF_AREA
         self.threshold = cfg.MODEL.PANOPTIC_DEEPLAB.CENTER_THRESHOLD
         self.nms_kernel = cfg.MODEL.PANOPTIC_DEEPLAB.NMS_KERNEL
         self.top_k = cfg.MODEL.PANOPTIC_DEEPLAB.TOP_K_INSTANCE
         self.predict_instances = cfg.MODEL.PANOPTIC_DEEPLAB.PREDICT_INSTANCES
-        self.use_depthwise_separable_conv = cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
+        self.use_depthwise_separable_conv = (
+            cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
+        )
         assert (
             cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV
             == cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
         )
         self.size_divisibility = cfg.MODEL.PANOPTIC_DEEPLAB.SIZE_DIVISIBILITY
-        self.benchmark_network_speed = cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED
+        self.benchmark_network_speed = (
+            cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED
+        )
 
     @property
     def device(self):
@@ -122,13 +135,23 @@ class PanopticDeepLab(nn.Module):
             center_targets = ImageList.from_tensors(
                 center_targets, size_divisibility
             ).tensor.unsqueeze(1)
-            center_weights = [x["center_weights"].to(self.device) for x in batched_inputs]
-            center_weights = ImageList.from_tensors(center_weights, size_divisibility).tensor
+            center_weights = [
+                x["center_weights"].to(self.device) for x in batched_inputs
+            ]
+            center_weights = ImageList.from_tensors(
+                center_weights, size_divisibility
+            ).tensor
 
             offset_targets = [x["offset"].to(self.device) for x in batched_inputs]
-            offset_targets = ImageList.from_tensors(offset_targets, size_divisibility).tensor
-            offset_weights = [x["offset_weights"].to(self.device) for x in batched_inputs]
-            offset_weights = ImageList.from_tensors(offset_weights, size_divisibility).tensor
+            offset_targets = ImageList.from_tensors(
+                offset_targets, size_divisibility
+            ).tensor
+            offset_weights = [
+                x["offset_weights"].to(self.device) for x in batched_inputs
+            ]
+            offset_weights = ImageList.from_tensors(
+                offset_weights, size_divisibility
+            ).tensor
         else:
             center_targets = None
             center_weights = None
@@ -136,8 +159,10 @@ class PanopticDeepLab(nn.Module):
             offset_targets = None
             offset_weights = None
 
-        center_results, offset_results, center_losses, offset_losses = self.ins_embed_head(
-            features, center_targets, center_weights, offset_targets, offset_weights
+        center_results, offset_results, center_losses, offset_losses = (
+            self.ins_embed_head(
+                features, center_targets, center_weights, offset_targets, offset_weights
+            )
         )
         losses.update(center_losses)
         losses.update(offset_losses)
@@ -149,8 +174,18 @@ class PanopticDeepLab(nn.Module):
             return []
 
         processed_results = []
-        for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-            sem_seg_results, center_results, offset_results, batched_inputs, images.image_sizes
+        for (
+            sem_seg_result,
+            center_result,
+            offset_result,
+            input_per_image,
+            image_size,
+        ) in zip(
+            sem_seg_results,
+            center_results,
+            offset_results,
+            batched_inputs,
+            images.image_sizes,
         ):
             height = input_per_image.get("height")
             width = input_per_image.get("width")
@@ -211,7 +246,9 @@ class PanopticDeepLab(nn.Module):
                             [sem_scores * center_scores], device=panoptic_image.device
                         )
                         # Get bounding boxes
-                        instance.pred_boxes = BitMasks(instance.pred_masks).get_bounding_boxes()
+                        instance.pred_boxes = BitMasks(
+                            instance.pred_masks
+                        ).get_bounding_boxes()
                         instances.append(instance)
                 if len(instances) > 0:
                     processed_results[-1]["instances"] = Instances.cat(instances)
@@ -311,7 +348,9 @@ class PanopticDeepLabSemSegHead(DeepLabV3PlusHead):
         if loss_type == "cross_entropy":
             self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_value)
         elif loss_type == "hard_pixel_mining":
-            self.loss = DeepLabCE(ignore_label=ignore_value, top_k_percent_pixels=loss_top_k)
+            self.loss = DeepLabCE(
+                ignore_label=ignore_value, top_k_percent_pixels=loss_top_k
+            )
         else:
             raise ValueError("Unexpected loss type: %s" % loss_type)
 
@@ -346,7 +385,10 @@ class PanopticDeepLabSemSegHead(DeepLabV3PlusHead):
 
     def losses(self, predictions, targets, weights=None):
         predictions = F.interpolate(
-            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+            predictions,
+            scale_factor=self.common_stride,
+            mode="bilinear",
+            align_corners=False,
         )
         loss = self.loss(predictions, targets, weights)
         losses = {"loss_sem_seg": loss * self.loss_weight}
@@ -393,7 +435,9 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
             center_loss_weight (float): loss weight for center point prediction.
             offset_loss_weight (float): loss weight for center offset prediction.
         """
-        super().__init__(input_shape, decoder_channels=decoder_channels, norm=norm, **kwargs)
+        super().__init__(
+            input_shape, decoder_channels=decoder_channels, norm=norm, **kwargs
+        )
         assert self.decoder_only
 
         self.center_loss_weight = center_loss_weight
@@ -484,7 +528,9 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
         ) + [cfg.MODEL.INS_EMBED_HEAD.ASPP_CHANNELS]
         ret = dict(
             input_shape={
-                k: v for k, v in input_shape.items() if k in cfg.MODEL.INS_EMBED_HEAD.IN_FEATURES
+                k: v
+                for k, v in input_shape.items()
+                if k in cfg.MODEL.INS_EMBED_HEAD.IN_FEATURES
             },
             project_channels=cfg.MODEL.INS_EMBED_HEAD.PROJECT_CHANNELS,
             aspp_dilations=cfg.MODEL.INS_EMBED_HEAD.ASPP_DILATIONS,
@@ -523,11 +569,17 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
             )
         else:
             center = F.interpolate(
-                center, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+                center,
+                scale_factor=self.common_stride,
+                mode="bilinear",
+                align_corners=False,
             )
             offset = (
                 F.interpolate(
-                    offset, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+                    offset,
+                    scale_factor=self.common_stride,
+                    mode="bilinear",
+                    align_corners=False,
                 )
                 * self.common_stride
             )
@@ -546,7 +598,10 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
 
     def center_losses(self, predictions, targets, weights):
         predictions = F.interpolate(
-            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+            predictions,
+            scale_factor=self.common_stride,
+            mode="bilinear",
+            align_corners=False,
         )
         loss = self.center_loss(predictions, targets) * weights
         if weights.sum() > 0:
@@ -559,7 +614,10 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
     def offset_losses(self, predictions, targets, weights):
         predictions = (
             F.interpolate(
-                predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+                predictions,
+                scale_factor=self.common_stride,
+                mode="bilinear",
+                align_corners=False,
             )
             * self.common_stride
         )

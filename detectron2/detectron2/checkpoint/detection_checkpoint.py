@@ -7,8 +7,8 @@ import torch
 from fvcore.common.checkpoint import Checkpointer
 from torch.nn.parallel import DistributedDataParallel
 
-import detectron2.utils.comm as comm
-from detectron2.utils.file_io import PathManager
+import detectron2.detectron2.utils.comm as comm
+from detectron2.detectron2.utils.file_io import PathManager
 
 from .c2_model_loading import align_and_update_state_dicts
 
@@ -81,7 +81,11 @@ class DetectionCheckpointer(Checkpointer):
                     # Detection models have "blobs", but ImageNet models don't
                     data = data["blobs"]
                 data = {k: v for k, v in data.items() if not k.endswith("_momentum")}
-                return {"model": data, "__author__": "Caffe2", "matching_heuristics": True}
+                return {
+                    "model": data,
+                    "__author__": "Caffe2",
+                    "matching_heuristics": True,
+                }
         elif filename.endswith(".pyth"):
             # assume file is from pycls; no one else seems to use the ".pyth" extension
             with PathManager.open(filename, "rb") as f:
@@ -94,12 +98,18 @@ class DetectionCheckpointer(Checkpointer):
                 for k, v in data["model_state"].items()
                 if not k.endswith("num_batches_tracked")
             }
-            return {"model": model_state, "__author__": "pycls", "matching_heuristics": True}
+            return {
+                "model": model_state,
+                "__author__": "pycls",
+                "matching_heuristics": True,
+            }
 
         loaded = self._torch_load(filename)
         if "model" not in loaded:
             loaded = {"model": loaded}
-        assert self._parsed_url_during_load is not None, "`_load_file` must be called inside `load`"
+        assert (
+            self._parsed_url_during_load is not None
+        ), "`_load_file` must be called inside `load`"
         parsed_url = self._parsed_url_during_load
         queries = parse_qs(parsed_url.query)
         if queries.pop("matching_heuristics", "False") == ["True"]:

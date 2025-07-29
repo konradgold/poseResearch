@@ -5,9 +5,9 @@ import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 
-from detectron2.config import configurable
-from detectron2.layers import Conv2d, ShapeSpec, get_norm
-from detectron2.utils.registry import Registry
+from detectron2.detectron2.config import configurable
+from detectron2.detectron2.layers import Conv2d, ShapeSpec, get_norm
+from detectron2.detectron2.utils.registry import Registry
 
 __all__ = ["FastRCNNConvFCHead", "build_box_head", "ROI_BOX_HEAD_REGISTRY"]
 
@@ -31,7 +31,12 @@ class FastRCNNConvFCHead(nn.Sequential):
 
     @configurable
     def __init__(
-        self, input_shape: ShapeSpec, *, conv_dims: List[int], fc_dims: List[int], conv_norm=""
+        self,
+        input_shape: ShapeSpec,
+        *,
+        conv_dims: List[int],
+        fc_dims: List[int],
+        conv_norm="",
     ):
         """
         NOTE: this interface is experimental.
@@ -46,7 +51,11 @@ class FastRCNNConvFCHead(nn.Sequential):
         super().__init__()
         assert len(conv_dims) + len(fc_dims) > 0
 
-        self._output_size = (input_shape.channels, input_shape.height, input_shape.width)
+        self._output_size = (
+            input_shape.channels,
+            input_shape.height,
+            input_shape.width,
+        )
 
         self.conv_norm_relus = []
         for k, conv_dim in enumerate(conv_dims):

@@ -2,7 +2,7 @@
 from typing import List
 import torch
 
-from detectron2.layers import nonzero_tuple
+from detectron2.detectron2.layers import nonzero_tuple
 
 
 # TODO: the name is too general
@@ -23,7 +23,10 @@ class Matcher:
     """
 
     def __init__(
-        self, thresholds: List[float], labels: List[int], allow_low_quality_matches: bool = False
+        self,
+        thresholds: List[float],
+        labels: List[int],
+        allow_low_quality_matches: bool = False,
     ):
         """
         Args:
@@ -52,7 +55,9 @@ class Matcher:
         thresholds.insert(0, -float("inf"))
         thresholds.append(float("inf"))
         # Currently torchscript does not support all + generator
-        assert all([low <= high for (low, high) in zip(thresholds[:-1], thresholds[1:])])
+        assert all(
+            [low <= high for (low, high) in zip(thresholds[:-1], thresholds[1:])]
+        )
         assert all([l in [-1, 0, 1] for l in labels])
         assert len(labels) == len(thresholds) - 1
         self.thresholds = thresholds

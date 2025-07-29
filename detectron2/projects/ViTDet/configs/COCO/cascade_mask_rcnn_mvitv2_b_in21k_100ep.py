@@ -3,13 +3,13 @@ import torch.nn as nn
 from fvcore.common.param_scheduler import MultiStepParamScheduler
 
 from detectron2 import model_zoo
-from detectron2.config import LazyCall as L
-from detectron2.solver import WarmupParamScheduler
-from detectron2.modeling import MViT
-from detectron2.layers import ShapeSpec
-from detectron2.modeling.box_regression import Box2BoxTransform
-from detectron2.modeling.matcher import Matcher
-from detectron2.modeling.roi_heads import (
+from detectron2.detectron2.config import LazyCall as L
+from detectron2.detectron2.solver import WarmupParamScheduler
+from detectron2.detectron2.modeling import MViT
+from detectron2.detectron2.layers import ShapeSpec
+from detectron2.detectron2.modeling.box_regression import Box2BoxTransform
+from detectron2.detectron2.modeling.matcher import Matcher
+from detectron2.detectron2.modeling.roi_heads import (
     FastRCNNOutputLayers,
     FastRCNNConvFCHead,
     CascadeROIHeads,

@@ -12,13 +12,13 @@ from torch._C import ListType
 from torch.onnx import register_custom_op_symbolic
 
 from detectron2 import model_zoo
-from detectron2.config import CfgNode, LazyConfig, instantiate
-from detectron2.data import DatasetCatalog
-from detectron2.data.detection_utils import read_image
-from detectron2.modeling import build_model
-from detectron2.structures import Boxes, Instances, ROIMasks
-from detectron2.utils.file_io import PathManager
-from detectron2.utils.torch_version_utils import min_torch_version
+from detectron2.detectron2.config import CfgNode, LazyConfig, instantiate
+from detectron2.detectron2.data import DatasetCatalog
+from detectron2.detectron2.data.detection_utils import read_image
+from detectron2.detectron2.modeling import build_model
+from detectron2.detectron2.structures import Boxes, Instances, ROIMasks
+from detectron2.detectron2.utils.file_io import PathManager
+from detectron2.detectron2.utils.torch_version_utils import min_torch_version
 
 
 """
@@ -191,7 +191,9 @@ def register_custom_op_onnx_export(
     print(f"_register_custom_op_onnx_export({opname}, {opset_version}) succeeded.")
 
 
-def unregister_custom_op_onnx_export(opname: str, opset_version: int, min_version: str) -> None:
+def unregister_custom_op_onnx_export(
+    opname: str, opset_version: int, min_version: str
+) -> None:
     """
     Unregister PyTorch's symbolic `opname`-`opset_version` for ONNX export.
     The un-registration is performed only when PyTorch's version is < `min_version`
@@ -202,7 +204,9 @@ def unregister_custom_op_onnx_export(opname: str, opset_version: int, min_versio
     # TODO: _unregister_custom_op_symbolic is introduced PyTorch>=1.10
     #       Remove after PyTorch 1.10+ is used by ALL detectron2's CI
     try:
-        from torch.onnx import unregister_custom_op_symbolic as _unregister_custom_op_symbolic
+        from torch.onnx import (
+            unregister_custom_op_symbolic as _unregister_custom_op_symbolic,
+        )
     except ImportError:
 
         def _unregister_custom_op_symbolic(symbolic_name, opset_version):
@@ -216,7 +220,10 @@ def unregister_custom_op_onnx_export(opname: str, opset_version: int, min_versio
                     ns, op_name = get_ns_op_name_from_custom_op(symbolic_name)
                 except ImportError as import_error:
                     if not bool(
-                        re.match(r"^[a-zA-Z0-9-_]*::[a-zA-Z-_]+[a-zA-Z0-9-_]*$", symbolic_name)
+                        re.match(
+                            r"^[a-zA-Z0-9-_]*::[a-zA-Z-_]+[a-zA-Z0-9-_]*$",
+                            symbolic_name,
+                        )
                     ):
                         raise ValueError(
                             f"Invalid symbolic name {symbolic_name}. Must be `domain::name`"
@@ -224,7 +231,9 @@ def unregister_custom_op_onnx_export(opname: str, opset_version: int, min_versio
 
                     ns, op_name = symbolic_name.split("::")
                     if ns == "onnx":
-                        raise ValueError(f"{ns} domain cannot be modified.") from import_error
+                        raise ValueError(
+                            f"{ns} domain cannot be modified."
+                        ) from import_error
 
                     if ns == "aten":
                         ns = ""
@@ -288,7 +297,10 @@ def skipIfUnsupportedMinTorchVersion(min_version):
     """
     Skips tests for PyTorch versions older than min_version.
     """
-    reason = f"module 'torch' has __version__ {torch.__version__}" f", required is: {min_version}"
+    reason = (
+        f"module 'torch' has __version__ {torch.__version__}"
+        f", required is: {min_version}"
+    )
     return unittest.skipIf(not min_torch_version(min_version), reason)
 
 
@@ -367,7 +379,9 @@ def _pytorch1111_symbolic_opset9_to(g, self, *args):
 
 
 # TODO: Remove after PyTorch 1.11.1+ is used by detectron2's CI
-def _pytorch1111_symbolic_opset9_repeat_interleave(g, self, repeats, dim=None, output_size=None):
+def _pytorch1111_symbolic_opset9_repeat_interleave(
+    g, self, repeats, dim=None, output_size=None
+):
 
     # from torch.onnx.symbolic_helper import ScalarType
     from torch.onnx.symbolic_opset9 import expand, unsqueeze
@@ -376,7 +390,9 @@ def _pytorch1111_symbolic_opset9_repeat_interleave(g, self, repeats, dim=None, o
     # if dim is None flatten
     # By default, use the flattened input array, and return a flat output array
     if sym_help._is_none(dim):
-        input = sym_help._reshape_helper(g, self, g.op("Constant", value_t=torch.tensor([-1])))
+        input = sym_help._reshape_helper(
+            g, self, g.op("Constant", value_t=torch.tensor([-1]))
+        )
         dim = 0
     else:
         dim = sym_help._maybe_get_scalar(dim)
@@ -415,7 +431,9 @@ def _pytorch1111_symbolic_opset9_repeat_interleave(g, self, repeats, dim=None, o
             )
         else:
             reps = input_sizes[dim]
-            repeats = expand(g, repeats, g.op("Constant", value_t=torch.tensor([reps])), None)
+            repeats = expand(
+                g, repeats, g.op("Constant", value_t=torch.tensor([reps])), None
+            )
 
     # Cases where repeats is a 1 dim Tensor
     elif repeats_dim == 1:

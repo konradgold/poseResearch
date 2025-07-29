@@ -1,4 +1,4 @@
-from detectron2.data.detection_utils import create_keypoint_hflip_indices
+from detectron2.detectron2.data.detection_utils import create_keypoint_hflip_indices
 
 from .coco import dataloader
 
@@ -9,5 +9,7 @@ dataloader.test.dataset.names = "keypoints_coco_2017_val"
 dataloader.train.mapper.update(
     use_instance_mask=False,
     use_keypoint=True,
-    keypoint_hflip_indices=create_keypoint_hflip_indices(dataloader.train.dataset.names),
+    keypoint_hflip_indices=create_keypoint_hflip_indices(
+        dataloader.train.dataset.names
+    ),
 )

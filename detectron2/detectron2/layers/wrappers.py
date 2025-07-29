@@ -14,10 +14,12 @@ from typing import List, Optional
 import torch
 from torch.nn import functional as F
 
-from detectron2.utils.env import TORCH_VERSION
+from detectron2.detectron2.utils.env import TORCH_VERSION
 
 
-def shapes_to_tensor(x: List[int], device: Optional[torch.device] = None) -> torch.Tensor:
+def shapes_to_tensor(
+    x: List[int], device: Optional[torch.device] = None
+) -> torch.Tensor:
     """
     Turn a list of integer scalars or integer Tensor scalars into a vector,
     in a way that's both traceable and scriptable.
@@ -140,7 +142,13 @@ class Conv2d(torch.nn.Conv2d):
                         ), "SyncBatchNorm does not support empty inputs!"
 
         x = F.conv2d(
-            x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups
+            x,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
         )
         if self.norm is not None:
             x = self.norm(x)

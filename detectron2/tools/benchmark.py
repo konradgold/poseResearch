@@ -14,21 +14,27 @@ import tqdm
 from fvcore.common.timer import Timer
 from torch.nn.parallel import DistributedDataParallel
 
-from detectron2.checkpoint import DetectionCheckpointer
-from detectron2.config import LazyConfig, get_cfg, instantiate
-from detectron2.data import (
+from detectron2.detectron2.checkpoint import DetectionCheckpointer
+from detectron2.detectron2.config import LazyConfig, get_cfg, instantiate
+from detectron2.detectron2.data import (
     DatasetFromList,
     build_detection_test_loader,
     build_detection_train_loader,
 )
-from detectron2.data.benchmark import DataLoaderBenchmark
-from detectron2.engine import AMPTrainer, SimpleTrainer, default_argument_parser, hooks, launch
-from detectron2.modeling import build_model
-from detectron2.solver import build_optimizer
-from detectron2.utils import comm
-from detectron2.utils.collect_env import collect_env_info
-from detectron2.utils.events import CommonMetricPrinter
-from detectron2.utils.logger import setup_logger
+from detectron2.detectron2.data.benchmark import DataLoaderBenchmark
+from detectron2.detectron2.engine import (
+    AMPTrainer,
+    SimpleTrainer,
+    default_argument_parser,
+    hooks,
+    launch,
+)
+from detectron2.detectron2.modeling import build_model
+from detectron2.detectron2.solver import build_optimizer
+from detectron2.detectron2.utils import comm
+from detectron2.detectron2.utils.collect_env import collect_env_info
+from detectron2.detectron2.utils.events import CommonMetricPrinter
+from detectron2.detectron2.utils.logger import setup_logger
 
 logger = logging.getLogger("detectron2")
 
@@ -117,7 +123,9 @@ def benchmark_train(args):
             yield from data
 
     max_iter = 400
-    trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(model, f(), optimizer)
+    trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(
+        model, f(), optimizer
+    )
     trainer.register_hooks(
         [
             hooks.IterationTimer(),
@@ -174,7 +182,9 @@ def benchmark_eval(args):
 
 def main() -> None:
     parser = default_argument_parser()
-    parser.add_argument("--task", choices=["train", "eval", "data", "data_advanced"], required=True)
+    parser.add_argument(
+        "--task", choices=["train", "eval", "data", "data_advanced"], required=True
+    )
     args = parser.parse_args()
     assert not args.eval_only
 
