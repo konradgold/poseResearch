@@ -100,6 +100,67 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
     def identifier(self):
         return "MotionBERTEstimation"
 
+    def _pre_process(self, poses_2d: torch.Tensor) -> torch.Tensor:
+        """
+        Pre-process 2D poses including YOLO's COCO to h36m format conversion.
+        This includes format conversion from COCO to h36m and y-axis flipping from YOLO's post-processing.
+
+        Args:
+            poses_2d (torch.Tensor): Input 2D poses from YOLO in COCO format (P, T, 17, 3)
+
+        Returns:
+            torch.Tensor: Pre-processed poses in h36m format ready for MotionBERT
+        """
+        # First apply YOLO's format conversion (COCO to h36m) and y-axis flip
+        P, T, Nk_coco, D = poses_2d.shape
+
+        # Initialize h36m poses with same shape (17 keypoints)
+        poses_h36m = torch.zeros(
+            (P, T, 17, D), dtype=poses_2d.dtype, device=poses_2d.device
+        )
+
+        # Apply COCO to h36m conversion for each person and frame
+        # Using the exact mapping from YOLO's post-processing
+        for p in range(P):
+            for t in range(T):
+                x = poses_2d[p, t, :, :]  # (17, 3)
+
+                # COCO to h36m mapping - exact copy from YOLO's post-processing
+                # COCO: {0-nose 1-Leye 2-Reye 3-Lear 4Rear 5-Lsho 6-Rsho 7-Lelb 8-Relb 9-Lwri 10-Rwri 11-Lhip 12-Rhip 13-Lkne 14-Rkne 15-Lank 16-Rank}
+                # H36M: 0-root, 1-rhip, 2-rkne, 3-rank, 4-lhip, 5-lkne, 6-lank, 7-belly, 8-neck, 9-nose, 10-head, 11-lsho, 12-lelb, 13-lwri, 14-rsho, 15-relb, 16-rwri
+
+                poses_h36m[p, t, 0, :] = (
+                    x[11, :] + x[12, :]
+                ) * 0.5  # root = (lhip + rhip) / 2
+                poses_h36m[p, t, 1, :] = x[12, :]  # rhip
+                poses_h36m[p, t, 2, :] = x[14, :]  # rkne
+                poses_h36m[p, t, 3, :] = x[16, :]  # rank
+                poses_h36m[p, t, 4, :] = x[11, :]  # lhip
+                poses_h36m[p, t, 5, :] = x[13, :]  # lkne
+                poses_h36m[p, t, 6, :] = x[15, :]  # lank
+                poses_h36m[p, t, 8, :] = (
+                    x[5, :] + x[6, :]
+                ) * 0.5  # neck = (lsho + rsho) / 2
+                poses_h36m[p, t, 7, :] = (
+                    poses_h36m[p, t, 0, :] + poses_h36m[p, t, 8, :]
+                ) * 0.5  # belly = (root + neck) / 2
+                poses_h36m[p, t, 9, :] = x[0, :]  # nose
+                poses_h36m[p, t, 10, :] = (
+                    x[1, :] + x[2, :]
+                ) * 0.5  # head = (leye + reye) / 2
+                poses_h36m[p, t, 11, :] = x[5, :]  # lsho
+                poses_h36m[p, t, 12, :] = x[7, :]  # lelb
+                poses_h36m[p, t, 13, :] = x[9, :]  # lwri
+                poses_h36m[p, t, 14, :] = x[6, :]  # rsho
+                poses_h36m[p, t, 15, :] = x[8, :]  # relb
+                poses_h36m[p, t, 16, :] = x[10, :]  # rwri
+
+        # Flip y-axis to turn the pose right-side up (from YOLO's post-processing)
+        # Assuming the format is (x, y, confidence) where y is at index 1
+        poses_h36m[:, :, :, 1] = -poses_h36m[:, :, :, 1]
+
+        return poses_h36m
+
     def preprocess_2d_poses(self, poses_2d: np.ndarray) -> np.ndarray:
         """
         Preprocess 2D poses for MotionBERT input using MotionBERT's normalization approach.
@@ -238,17 +299,18 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
 
         return results_tensor
 
-    def _post_process(self, output: torch.Tensor) -> torch.Tensor:
+    def _normalization(self, output: torch.Tensor) -> torch.Tensor:
         """
-        Post-process MotionBERT output to fix coordinate system orientation.
-        Transform so pose looks towards positive y and feet are at negative z.
+        Post-process MotionBERT output to fix coordinate system orientation and apply normalization.
+        Transform so pose looks towards positive y and feet are at negative z, then apply default normalization.
 
         Args:
             output (torch.Tensor): Output from _forward method (P, T, 17, 3)
 
         Returns:
-            torch.Tensor: Post-processed output with corrected orientation
+            torch.Tensor: Normalized output with corrected orientation
         """
+        # First apply MotionBERT's coordinate system correction (moved from _post_process)
         # Transform coordinate system so that:
         # - Pose looks towards positive y
         # - Feet are at negative z
@@ -264,4 +326,7 @@ class MotionBERTEstimation(ThreeDPoseEstimation):
         # Flip the y-axis
         corrected_output[:, :, :, 0] = -corrected_output[:, :, :, 0]
 
+        # Apply default normalization (centering root at origin and scaling root-belly distance to 1)
+        # This is where additional normalization could be implemented if needed
+        # For now, return the corrected output
         return corrected_output

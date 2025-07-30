@@ -10,36 +10,38 @@ class Estimation(ABC):
     - output_check: check if the output is valid
     - config: configuration of the estimation
     - identifier: identifier of the estimation
-    - forward: forward pass of the estimation
-    - output_check: check if the output is valid
+
+    Optional methods to override:
+    - _pre_process: pre-process input before forward pass
+    - _normalization: normalize output after forward pass
     """
 
     @abstractmethod
     def _forward(self, batch) -> torch.Tensor:
         pass
 
-    def _post_process(self, output: torch.Tensor) -> torch.Tensor:
+    def _pre_process(self, batch) -> torch.Tensor:
         """
-        Post-process the output from _forward method.
-        This method is called automatically after _forward and before output validation.
-        Override this method to implement custom post-processing (e.g., format conversion).
+        Pre-process the input before _forward method.
+        This method is called automatically before _forward.
+        Override this method to implement custom pre-processing (e.g., format conversion).
 
         Args:
-            output (torch.Tensor): Output from _forward method
+            batch: Input batch to be pre-processed
 
         Returns:
-            torch.Tensor: Post-processed output
+            torch.Tensor: Pre-processed input
         """
-        return output
+        return batch
 
     def _normalization(self, output: torch.Tensor) -> torch.Tensor:
         """
         Normalize the output by centering root at origin and scaling root-belly distance to 1.
-        This method is called automatically after _post_process.
+        This method is called automatically after _forward.
         Override this method to implement custom normalization.
 
         Args:
-            output (torch.Tensor): Output from _post_process method
+            output (torch.Tensor): Output from _forward method
 
         Returns:
             torch.Tensor: Normalized output
@@ -48,8 +50,8 @@ class Estimation(ABC):
         return output
 
     def forward(self, batch) -> torch.Tensor:
-        output = self._forward(batch)
-        output = self._post_process(output)
+        preprocessed_batch = self._pre_process(batch)
+        output = self._forward(preprocessed_batch)
         output = self._normalization(output)
         print(f"{self.identifier} forwarded output of shape: {output.shape}.")
         if self.output_check(output):
