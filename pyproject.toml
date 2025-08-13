@@ -28,7 +28,7 @@ requires = ["setuptools>=80.9.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["detectron2", "MotionBERT", "poseResearch", "VideoPose3D"]
+include = ["detectron2", "MotionBERT", "poseResearch", "sam2", "VideoPose3D"]
 
 [tool.black]
 line-length = 88
@@ -49,6 +49,7 @@ exclude = '''
   | MotionBERT
   | pose_estimation
   | PoseGPT
+  | sam2
   | VideoPose3D
 )/
 '''
@@ -84,5 +85,6 @@ members = [
     "detectron2",
     "MotionBERT",
     "poseResearch",
+    "sam2",
     "VideoPose3D",
 ]
