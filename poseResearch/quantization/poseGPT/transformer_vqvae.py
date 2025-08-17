@@ -293,7 +293,7 @@ class TransformerVQVAE(TransformerAutoEncoder):
         seq_len_hid = z.shape[1]
         return self.decoder(z=z, mask=mask, return_mask=return_mask)
 
-    def forward(self, *, x, y, valid, quant_prop=1.0, **kwargs):
+    def forward(self, *, x, valid, quant_prop=1.0, **kwargs):
         mask = valid
 
         batch_size, seq_len, *_ = x.size()
@@ -317,7 +317,7 @@ class TransformerVQVAE(TransformerAutoEncoder):
 
         y = self.forward_decoder(z=hid, mask=mask_)
 
-        rotmat, trans = self.regressor(y)
+        rotmat, trans = self.regressor(x=y)
 
         rotmat = rotmat.reshape(batch_size, seq_len, -1, 3, 2)
 
