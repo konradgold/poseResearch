@@ -62,7 +62,7 @@ def load_keypoints():
     import json
     seq_len = 8
     
-    with open("poseResearch/dataloader/results_3d.json", 'r') as f:
+    with open("/Volumes/KG1TB/Developement/poseResearch/poseResearch/dataloader/results_3d.json", 'r') as f:
         data = json.load(f)
     data = data["poselifting"]["data"]
     poses = torch.Tensor(data).squeeze()

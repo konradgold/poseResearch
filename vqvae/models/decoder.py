@@ -41,10 +41,10 @@ class Decoder(nn.Module):
 
 if __name__ == "__main__":
     # random data
-    x = np.random.random_sample((3, 40, 40, 200))
+    x = np.random.random_sample((200, 4, 5, 2))
     x = torch.tensor(x).float()
 
     # test decoder
-    decoder = Decoder(40, 128, 3, 64)
+    decoder = Decoder(4, 128, 2, 2)
     decoder_out = decoder(x)
-    print('Dncoder out shape:', decoder_out.shape)
+    print('Decoder out shape:', decoder_out.shape)

@@ -36,7 +36,6 @@ class Encoder(nn.Module):
                       stride=stride-1, padding=1),
             ResidualStack(
                 h_dim, h_dim, res_h_dim, n_res_layers)
-
         )
 
     def forward(self, x):
@@ -45,10 +44,10 @@ class Encoder(nn.Module):
 
 if __name__ == "__main__":
     # random data
-    x = np.random.random_sample((3, 40, 40, 200))
+    x = np.random.random_sample((200, 3, 20, 8))
     x = torch.tensor(x).float()
 
     # test encoder
-    encoder = Encoder(40, 128, 3, 64)
+    encoder = Encoder(3, 4, 2, 2)
     encoder_out = encoder(x)
     print('Encoder out shape:', encoder_out.shape)

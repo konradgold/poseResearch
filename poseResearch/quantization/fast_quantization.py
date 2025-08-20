@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional
-import numpy
+import numpy as np
 import torch
 from transformers import AutoProcessor
 from poseResearch.quantization.base_quantizer import VQVAEBase
@@ -7,6 +7,7 @@ import json
 import os
 import logging
 import sys
+
 
 # Create a logger
 logger = logging.getLogger(__name__)
@@ -44,18 +45,18 @@ class FASTQuantizer(VQVAEBase):
         self.max_vals = torch.amax(x, dim=(1, 2), keepdim=True)
         dist = self.max_vals - self.min_vals
         dist[dist == 0] = 1e-5  # Avoid division by zero
-        return (x - self.min_vals) / dist
+        return ((x - self.min_vals) / dist) * 10.
 
     def denormalize(self, x: torch.Tensor, i: Optional[int] = None) -> torch.Tensor:
         if i is not None and i < len(self.min_vals):
-            return x * (self.max_vals[i][0] - self.min_vals[i][0]) + self.min_vals[i][0]
+            return x * (self.max_vals[i][0] - self.min_vals[i][0])/10. + self.min_vals[i][0]
         return x * (self.max_vals[x.size(0)][0] - self.min_vals[x.size(0)][0]) + self.min_vals[x.size(0)][0]
 
     def fit_tokenizer(self, data: torch.Tensor, next_joint_first: bool = False, num_tokens: int = -1) -> None:
         self.next_joint_first = next_joint_first
-        normalized_tensor: numpy.ndarray = self._preprocess_input(data).numpy()
+        normalized_tensor: np.ndarray = self._preprocess_input(data).numpy()
         # Replace NaN values with zeros and create block list
-        normalized_tensor = numpy.nan_to_num(normalized_tensor, nan=0.0)
+        normalized_tensor = np.nan_to_num(normalized_tensor, nan=0.0)
         block_list = [normalized_tensor[i] for i in range(normalized_tensor.shape[0])]
         self.tokenizer.vocab_size = num_tokens if num_tokens > 0 else 1024
         self.tokenizer = self.tokenizer.fit(block_list, vocab_size=num_tokens if num_tokens > 0 else 1024)
@@ -97,10 +98,43 @@ class FASTQuantizer(VQVAEBase):
         reshaped_decoded = decoded.view(-1, 3, 17)  # Reshape back to (B, 3, 17)
         reshaped_decoded = reshaped_decoded.permute(0, 2, 1)  # Permute to (B, 17, 3)
         preprocessed = preprocessed.view(-1, 3, 17).permute(0, 2, 1)
+        
+        root_to_spine_distances = []
+        for pose in preprocessed:
+            root_point = pose[0]
+            spine_point = pose[7]
+
+            # Calculate Euclidean distance between root and spine
+            distance = np.linalg.norm(spine_point - root_point)
+            if distance > 0:  # Avoid division by zero
+                root_to_spine_distances.append(distance)
+
+        if not root_to_spine_distances:
+            scale_factor = 1.0  # Default scale factor if no valid distances
+
+        # Use median distance to avoid outliers
+        median_measured_distance = np.median(root_to_spine_distances)
+
+        # Calculate scale factor: real_distance / measured_distance
+        scale_factor = (
+            17.*16. / median_measured_distance
+        )
+            ###
+
+        diff = preprocessed - reshaped_decoded
+        dists = torch.norm(diff, dim=1)  # Euclidean norm over xyz → (B, K, T)
+
+            # MPJPE per pose (mean over joints K)
+        mpjpe_per_pose = dists.mean(dim=1)  # → (B, T)
+
+            # Final MPJPE (mean over all poses)
+        mpjpe = mpjpe_per_pose.mean().item()
+
         return {
             "recovered": reshaped_decoded,
             "encoded": quantized,
-            "loss": torch.mean(preprocessed - reshaped_decoded),  # counter padding
+            "loss": torch.mean(preprocessed - reshaped_decoded),
+            "mpjpe": mpjpe * scale_factor,  # counter padding
         }
 
     def quantize(self, input_tensor: torch.Tensor) -> List[List[int]]:
@@ -121,7 +155,7 @@ class FASTQuantizer(VQVAEBase):
         Reshapes the input_ids back to the original shape.
         """
         # Assuming input_ids is a list of lists, where each inner list is a sequence of tokens
-        if isinstance(input_ids, numpy.ndarray):
+        if isinstance(input_ids, np.ndarray):
             input_ids = torch.tensor(input_ids)
         input_ids = self.denormalize(input_ids, i).unsqueeze(0)
         reshaped = input_ids.view(-1, 3, 17)
