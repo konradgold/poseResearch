@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,7 +7,7 @@ from models.residual import ResidualStack
 
 class Decoder(nn.Module):
     """
-    This is the p_phi (x|z) network. Given a latent sample z p_phi 
+    This is the p_phi (x|z) network. Given a latent sample z p_phi
     maps back to the original space z -> x.
 
     Inputs:
@@ -26,13 +25,16 @@ class Decoder(nn.Module):
 
         self.inverse_conv_stack = nn.Sequential(
             nn.ConvTranspose2d(
-                in_dim, h_dim, kernel_size=kernel-1, stride=stride-1, padding=1),
+                in_dim, h_dim, kernel_size=kernel - 1, stride=stride - 1, padding=1
+            ),
             ResidualStack(h_dim, h_dim, res_h_dim, n_res_layers),
-            nn.ConvTranspose2d(h_dim, h_dim // 2,
-                               kernel_size=kernel, stride=stride, padding=1),
+            nn.ConvTranspose2d(
+                h_dim, h_dim // 2, kernel_size=kernel, stride=stride, padding=1
+            ),
             nn.ReLU(),
-            nn.ConvTranspose2d(h_dim//2, 3, kernel_size=kernel,
-                               stride=stride, padding=1)
+            nn.ConvTranspose2d(
+                h_dim // 2, 3, kernel_size=kernel, stride=stride, padding=1
+            ),
         )
 
     def forward(self, x):
@@ -47,4 +49,4 @@ if __name__ == "__main__":
     # test decoder
     decoder = Decoder(4, 128, 2, 2)
     decoder_out = decoder(x)
-    print('Decoder out shape:', decoder_out.shape)
+    print("Decoder out shape:", decoder_out.shape)

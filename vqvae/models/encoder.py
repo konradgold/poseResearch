@@ -1,4 +1,3 @@
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,7 +7,7 @@ from models.residual import ResidualStack
 
 class Encoder(nn.Module):
     """
-    This is the q_theta (z|x) network. Given a data sample x q_theta 
+    This is the q_theta (z|x) network. Given a data sample x q_theta
     maps to the latent space x -> z.
 
     For a VQ VAE, q_theta outputs parameters of a categorical distribution.
@@ -26,16 +25,14 @@ class Encoder(nn.Module):
         kernel = 4
         stride = 2
         self.conv_stack = nn.Sequential(
-            nn.Conv2d(in_dim, h_dim // 2, kernel_size=kernel,
-                      stride=stride, padding=1),
+            nn.Conv2d(in_dim, h_dim // 2, kernel_size=kernel, stride=stride, padding=1),
             nn.ReLU(),
-            nn.Conv2d(h_dim // 2, h_dim, kernel_size=kernel,
-                      stride=stride, padding=1),
+            nn.Conv2d(h_dim // 2, h_dim, kernel_size=kernel, stride=stride, padding=1),
             nn.ReLU(),
-            nn.Conv2d(h_dim, h_dim, kernel_size=kernel-1,
-                      stride=stride-1, padding=1),
-            ResidualStack(
-                h_dim, h_dim, res_h_dim, n_res_layers)
+            nn.Conv2d(
+                h_dim, h_dim, kernel_size=kernel - 1, stride=stride - 1, padding=1
+            ),
+            ResidualStack(h_dim, h_dim, res_h_dim, n_res_layers),
         )
 
     def forward(self, x):
@@ -50,4 +47,4 @@ if __name__ == "__main__":
     # test encoder
     encoder = Encoder(3, 4, 2, 2)
     encoder_out = encoder(x)
-    print('Encoder out shape:', encoder_out.shape)
+    print("Encoder out shape:", encoder_out.shape)

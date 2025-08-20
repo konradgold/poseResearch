@@ -18,7 +18,7 @@ console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)  # Default: show INFO and above
 
 # Format including file name
-formatter = logging.Formatter('%(levelname)s | %(filename)s:%(lineno)d | %(message)s')
+formatter = logging.Formatter("%(levelname)s | %(filename)s:%(lineno)d | %(message)s")
 console_handler.setFormatter(formatter)
 
 # Add the handler
@@ -35,7 +35,11 @@ class FASTQuantizer(VQVAEBase):
                 raise ValueError(f"Pretrained path {pretrained} does not exist")
             with open(f"{pretrained}/processor_config.json", "r") as f:
                 config = json.load(f)
-            self.tokenizer = self.tokenizer.from_pretrained(pretrained, trust_remote_code=True, vocab_size=config.get("vocab_size", 1024))
+            self.tokenizer = self.tokenizer.from_pretrained(
+                pretrained,
+                trust_remote_code=True,
+                vocab_size=config.get("vocab_size", 1024),
+            )
         else:
             self.tokenizer.bpe_tokenizer.add_special_tokens({"eos_token": "<EOS>"})
         self.next_joint_first = False
@@ -45,21 +49,31 @@ class FASTQuantizer(VQVAEBase):
         self.max_vals = torch.amax(x, dim=(1, 2), keepdim=True)
         dist = self.max_vals - self.min_vals
         dist[dist == 0] = 1e-5  # Avoid division by zero
-        return ((x - self.min_vals) / dist) * 10.
+        return ((x - self.min_vals) / dist) * 10.0
 
     def denormalize(self, x: torch.Tensor, i: Optional[int] = None) -> torch.Tensor:
         if i is not None and i < len(self.min_vals):
-            return x * (self.max_vals[i][0] - self.min_vals[i][0])/10. + self.min_vals[i][0]
-        return x * (self.max_vals[x.size(0)][0] - self.min_vals[x.size(0)][0]) + self.min_vals[x.size(0)][0]
+            return (
+                x * (self.max_vals[i][0] - self.min_vals[i][0]) / 10.0
+                + self.min_vals[i][0]
+            )
+        return (
+            x * (self.max_vals[x.size(0)][0] - self.min_vals[x.size(0)][0])
+            + self.min_vals[x.size(0)][0]
+        )
 
-    def fit_tokenizer(self, data: torch.Tensor, next_joint_first: bool = False, num_tokens: int = -1) -> None:
+    def fit_tokenizer(
+        self, data: torch.Tensor, next_joint_first: bool = False, num_tokens: int = -1
+    ) -> None:
         self.next_joint_first = next_joint_first
         normalized_tensor: np.ndarray = self._preprocess_input(data).numpy()
         # Replace NaN values with zeros and create block list
         normalized_tensor = np.nan_to_num(normalized_tensor, nan=0.0)
         block_list = [normalized_tensor[i] for i in range(normalized_tensor.shape[0])]
         self.tokenizer.vocab_size = num_tokens if num_tokens > 0 else 1024
-        self.tokenizer = self.tokenizer.fit(block_list, vocab_size=num_tokens if num_tokens > 0 else 1024)
+        self.tokenizer = self.tokenizer.fit(
+            block_list, vocab_size=num_tokens if num_tokens > 0 else 1024
+        )
         self.tokenizer.bpe_tokenizer.add_special_tokens({"eos_token": "<EOS>"})
 
     def _preprocess_input(
@@ -92,13 +106,13 @@ class FASTQuantizer(VQVAEBase):
     def forward(self, x: torch.Tensor) -> Dict[str, Any]:
         preprocessed = self._preprocess_input(x)
         quantized = self.quantize(preprocessed)
-        
+
         decoded = self.decode(quantized)
         decoded = torch.tensor(decoded, dtype=torch.float32)
         reshaped_decoded = decoded.view(-1, 3, 17)  # Reshape back to (B, 3, 17)
         reshaped_decoded = reshaped_decoded.permute(0, 2, 1)  # Permute to (B, 17, 3)
         preprocessed = preprocessed.view(-1, 3, 17).permute(0, 2, 1)
-        
+
         root_to_spine_distances = []
         for pose in preprocessed:
             root_point = pose[0]
@@ -116,18 +130,16 @@ class FASTQuantizer(VQVAEBase):
         median_measured_distance = np.median(root_to_spine_distances)
 
         # Calculate scale factor: real_distance / measured_distance
-        scale_factor = (
-            17.*16. / median_measured_distance
-        )
-            ###
+        scale_factor = 17.0 * 16.0 / median_measured_distance
+        ###
 
         diff = preprocessed - reshaped_decoded
         dists = torch.norm(diff, dim=1)  # Euclidean norm over xyz → (B, K, T)
 
-            # MPJPE per pose (mean over joints K)
+        # MPJPE per pose (mean over joints K)
         mpjpe_per_pose = dists.mean(dim=1)  # → (B, T)
 
-            # Final MPJPE (mean over all poses)
+        # Final MPJPE (mean over all poses)
         mpjpe = mpjpe_per_pose.mean().item()
 
         return {
@@ -150,7 +162,9 @@ class FASTQuantizer(VQVAEBase):
 
         return out
 
-    def shape_back(self, input_ids: torch.Tensor, i: Optional[int] = None) -> torch.Tensor:
+    def shape_back(
+        self, input_ids: torch.Tensor, i: Optional[int] = None
+    ) -> torch.Tensor:
         """
         Reshapes the input_ids back to the original shape.
         """
@@ -169,7 +183,7 @@ class FASTQuantizer(VQVAEBase):
         max_retries = 5
         for retry in range(max_retries):
             decoded = self.tokenizer.decode(input_ids)
-            if (decoded==0.).all():
+            if (decoded == 0.0).all():
                 if retry == max_retries - 1:
                     logger.error("Terminated decoding without success")
                     return None
