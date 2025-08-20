@@ -3,5 +3,6 @@
     "**/__pycache__": true
   },
   "editor.defaultFormatter": "ms-python.black-formatter",
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "cmake.sourceDirectory": "/Volumes/KG1TB/Developement/poseResearch/detectron2/tools/deploy"
 }

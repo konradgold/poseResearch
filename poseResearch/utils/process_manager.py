@@ -4,7 +4,7 @@ import json
 import numpy as np
 import os
 import torch
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Iterable, Literal
 from pathlib import Path
 
 # Define the allowed stage names as a type
@@ -403,3 +403,23 @@ class ProcessManager:
     def has_stage(self, stage_name: StageName) -> bool:
         """Check if stage data exists."""
         return stage_name in self.data_store
+
+
+
+class IterableWrapper(Iterable):
+    """Wrapper to make ProcessManager iterable."""
+
+    def __init__(self, process_manager: ProcessManager):
+        self.process_manager = process_manager
+
+    def __iter__(self):
+        return self
+    
+    def __len__(self):
+        return len(self.process_manager.data_store)
+
+    def __next__(self):
+        next_batch = self.process_manager.get_next_batch()
+        if next_batch is None:
+            raise StopIteration
+        return next_batch
