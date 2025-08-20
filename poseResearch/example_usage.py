@@ -138,7 +138,7 @@ def example_5_from_video(video_path: str):
 
     pipeline = EstimationPipe(
         NoPreprocess(),
-        YOLOEstimation("yolo11s-pose.pt"),
+        YOLOEstimation("yolo11x-pose.pt"),
         MotionBERTEstimation(),
         data_loader,
     )
@@ -382,7 +382,7 @@ def parse_args_and_examples():
         "--video",
         type=str,
         help="Path of input video to process",
-        default="fem1_t1_preview.mp4",
+        default="/Users/konradgoldenbaum/Downloads/malemonologue2_t2-cam01.mp4",
     )
 
     # Additional arguments for generic pipeline (example 10)

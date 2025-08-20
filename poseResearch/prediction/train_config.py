@@ -12,7 +12,7 @@ class Config:
 
     # training settings
     batch_size: int = 12
-    block_size: int = 128
+    block_size: int = 4
     gradient_accumulation_steps: int = 5
 
     # model settings
@@ -30,7 +30,7 @@ class Config:
     beta1: float = 0.9
     beta2: float = 0.95
     grad_clip: float = 1.0
-    vocab_size: int = 2048
+    vocab_size: int = 2001
 
     # learning rate decay settings
     decay_lr: bool = True
@@ -47,7 +47,7 @@ class Config:
     eval_only: bool = False
     always_save_checkpoint: bool = True
     init_from: str = "scratch"
-    dataset: str = "overfit"
+    dataset: str = "fit11xvqvae"
     backend: str = "nccl"
     compile: bool = False
 

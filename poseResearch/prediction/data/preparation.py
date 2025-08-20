@@ -48,11 +48,11 @@ def process_data(data: List) -> torch.Tensor:
             poses = poses.reshape(-1, *poses.shape[2:])
         assert len(poses.size()) == 3
         assert poses.size(-2) == 17
-        assert poses.size(-1) == 3
-        poses = poses.unsqueeze(0)  # Add batch dimension
+        assert poses.size(-1) == 3 
         # Your processing logic here
         data[i] = poses
     prepared_data = torch.cat(data, dim=0)
+    prepared_data.unsqueeze(0)
 
     return prepared_data
 
@@ -68,9 +68,9 @@ def main():
     parser = argparse.ArgumentParser(description="Process JSON file and save as tensor")
     parser.add_argument("--tokenizer", type=str, help="What tokenizer to use", default="poseResearch/prediction/data/tokenizer")
     parser.add_argument(
-        "--input_path", type=str, help="Path to directory of json files", default="poseResearch/dataloader/male2_t2_cam01"
+        "--input_path", type=str, help="Path to directory of json files", default="/Volumes/KG1TB/Developement/poseResearch/poseResearch/dataloader/male2_t2_cam01"
     )
-    parser.add_argument("--output_path", type=str, help="Path to output .bin file", default="data/overfit/val.bin")
+    parser.add_argument("--output_path", type=str, help="Path to output .bin file", default="/Volumes/KG1TB/Developement/poseResearch/data/fit11x/val.bin")
     parser.add_argument(
         "--fit", action="store_true", help="Whether to fit the tokeniser"
     )

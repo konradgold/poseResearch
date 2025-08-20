@@ -14,7 +14,7 @@ n_head: 4
 n_embd: 256
 dropout: 0.0 # for pretraining 0 is good, for finetuning try 0.1+
 bias: False
-vocab_size: 2049 # 2048 + 1 for the eot token
+vocab_size: 1025 # 2048 + 1 for the eot token
 
 # this makes total number of tokens be 300B
 max_iters: 600000

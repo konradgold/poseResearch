@@ -89,7 +89,7 @@ ctx = (
 )
 
 # poor man's data loader
-data_dir = os.path.join("data", train_config.dataset)
+data_dir = os.path.join("/Volumes/KG1TB/Developement/poseResearch/data", train_config.dataset)
 
 
 def get_batch(split):
@@ -232,17 +232,21 @@ if ddp:
 @torch.no_grad()
 def estimate_loss():
     out = {}
+    perp = {}
     model.eval()  # type: ignore
     for split in ["train", "val"]:
         losses = torch.zeros(train_config.eval_iters)
+        perplexities = torch.zeros(train_config.eval_iters)
         for k in range(train_config.eval_iters):
             X, Y = get_batch(split)
             with ctx:
                 logits, loss = model(X, Y)
+            perplexities[k] = torch.exp(loss).item()
             losses[k] = loss.item()
         out[split] = losses.mean()
+        perp[split] = perplexities.mean()
     model.train()  # type: ignore
-    return out
+    return out, perp
 
 
 # learning rate decay scheduler (cosine with warmup)
@@ -289,10 +293,11 @@ while True:
 
     # evaluate the loss on train/val sets and write checkpoints
     if iter_num % train_config.eval_interval == 0 and master_process:
-        losses = estimate_loss()
+        losses, perp = estimate_loss()
         print(
             f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}"
         )
+        print(f"step {iter_num}: train perplexity {perp['train']:.4f}, val perplexity {perp['val']:.4f}")
         if train_config.wandb_log:
             wandb.log(
                 {
