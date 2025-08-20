@@ -31,12 +31,13 @@ class VQVAE(nn.Module):
             self.img_to_embedding_map = None
 
     def tokenize(self, x, pad=3):
+        x = x.permute(0, 3, 2, 1)
         torch.nn.functional.pad(x, (0, 0, 0, pad), "constant", 0)
 
         z_e = self.encoder(x)
 
         embedding_loss, z_q, perplexity, _, token = self.vector_quantization(z_e)
-        return token[0][0]
+        return token
 
     def detokenize(self, token):
         # get quantized latent vectors

@@ -163,7 +163,7 @@ def iterate():
                 "MPJPE:",
                 np.mean(results["mpjpe"]),
             )
-            return np.mean(results["mpjpe"])
+            return model
 
         mpjpe.append(train())
         if args.n_hiddens > 0:

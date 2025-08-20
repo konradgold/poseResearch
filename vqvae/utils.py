@@ -62,7 +62,24 @@ def load_keypoints():
     import json
     seq_len = 8
     
-    with open("/Volumes/KG1TB/Developement/poseResearch/poseResearch/dataloader/results_3d.json", 'r') as f:
+    with open("/Volumes/KG1TB/Developement/poseResearch/poseResearch/dataloader/male2_t2_cam22/results_results-from-video_poselifting11x.json", 'r') as f:
+        data = json.load(f)
+    data = data["poselifting"]["data"]
+    poses = torch.Tensor(data).squeeze()
+    if len(poses.size()) == 4:
+        poses = poses.view(-1, 17, 3)
+    assert len(poses.size()) == 3
+    assert poses.size(-2) == 17
+    assert poses.size(-1) == 3
+    assert poses.size(0) > seq_len
+    if poses.size(0) % seq_len != 0:
+        poses = poses[:-(poses.size(0) % seq_len)]  # Ensure divisible by seq_len
+    poses = poses.view(-1, seq_len, 17, 3)
+
+    print(f"Input shape: {poses.shape}")
+
+    train = torch.utils.data.TensorDataset(poses)
+    with open("/Volumes/KG1TB/Developement/poseResearch/poseResearch/dataloader/male2_t2_cam01/results_results-from-video_poselifting11xval.json", 'r') as f:
         data = json.load(f)
     data = data["poselifting"]["data"]
     poses = torch.Tensor(data).squeeze()
@@ -72,15 +89,14 @@ def load_keypoints():
     assert poses.size(-2) == 17
     assert poses.size(-1) == 3
     assert poses.size(0) > 8
-    poses = poses[:-(poses.size(0) % seq_len)]  # Ensure divisible by seq_len
+    if poses.size(0) % seq_len != 0:
+        poses = poses[:-(poses.size(0) % seq_len)]  # Ensure divisible by seq_len
     poses = poses.view(-1, seq_len, poses.size(-2), poses.size(-1))
 
     print(f"Input shape: {poses.shape}")
-
-    train = torch.utils.data.TensorDataset(poses[:3*len(poses) // 4, :, :, :])
-    val = torch.utils.data.TensorDataset(poses[3*len(poses) // 4:, :, :, :])
+    val = torch.utils.data.TensorDataset(poses)
     # Variance across the sequence length
-    return train, val, poses.var().mean().item()
+    return train, val, 1.
 
 
 def data_loaders(train_data, val_data, batch_size):
