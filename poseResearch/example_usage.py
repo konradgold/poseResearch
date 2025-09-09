@@ -254,6 +254,8 @@ def example_10_generic_pipeline(
     pose2d: str,
     pose3d: str,
     yolo_model: str = "yolo11s-pose.pt",
+    motionbert_config: str = "global_lite",
+    motionbert_checkpoint: str = "global_lite",
     batch_size: int = 32,
     num_frames: int = None,
     save_path: str = "generic",
@@ -269,7 +271,7 @@ def example_10_generic_pipeline(
         print(f"YOLO Model: {yolo_model}")
     print(f"Batch Size: {batch_size}")
     print(f"Number of Frames: {num_frames}")
-    save_path = f"{preprocessor}-{pose2d}-{pose3d}-{yolo_model}"
+    save_path = f"{preprocessor}-{pose2d}-{yolo_model}-{pose3d}-{motionbert_config}"
     save_path += f"-{os.path.splitext(os.path.basename(video_path))[0]}"
     save_path += f"-{'full' if num_frames is None else num_frames}"
     print(f"Save Path: {save_path}")
@@ -318,7 +320,11 @@ def example_10_generic_pipeline(
     if pose3d.lower() == "motionbert":
         from estimation.pose3D.motionbert_estimation import MotionBERTEstimation
 
-        pose3d_instance = MotionBERTEstimation()
+        pose3d_instance = MotionBERTEstimation(
+            vid_path=video_path,
+            config_name=motionbert_config,
+            checkpoint_name=motionbert_checkpoint,
+        )
     elif pose3d.lower() == "videopose3d":
         from estimation.pose3D.videopose3d_estimation import VideoPose3DEstimation
 
@@ -421,6 +427,28 @@ def parse_args_and_examples():
         default="11s",
     )
     parser.add_argument(
+        "--config-name",
+        type=str,
+        choices=[
+            "global_lite",
+            "train_h36m",
+            "ft_h36m",
+        ],
+        help="MotionBERT config name (for example global_lite)",
+        default="global_lite",
+    )
+    parser.add_argument(
+        "--checkpoint-name",
+        type=str,
+        choices=[
+            "global_lite",
+            "train_h36m",
+            "ft_h36m",
+        ],
+        help="MotionBERT checkpoint name (for example global_lite)",
+        default="global_lite",
+    )
+    parser.add_argument(
         "--batch-size",
         type=int,
         help="Batch size for processing (for example 10)",
@@ -456,6 +484,8 @@ if __name__ == "__main__":
                 args.pose2d,
                 args.pose3d,
                 args.yolo_model,
+                args.config_name,
+                args.checkpoint_name,
                 args.batch_size,
                 args.num_frames,
             )
